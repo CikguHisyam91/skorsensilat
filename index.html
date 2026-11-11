@@ -621,7 +621,7 @@ function kpMain(k,m){
      <span class="muted">${namaBorang(k.jenis)} • ${esc(k.acara)} • Masa ${mmss(k.masa.sasaran)} • ${k.bilJuri||3} JURI • ${k.kaedah==='purata'?'PURATA':k.kaedah==='median'?'MEDIAN':'JUMLAH'}${k.skala10?' · SKALA 10':''}${k.buangHL&&k.bilJuri==5?' (BUANG TINGGI/RENDAH)':''}</span></div>
      ${k.sah?'<span class="badge b-ok">DISAHKAN</span>':''}
      ${m.aktif!==k.id?`<button class="btn sm gold" onclick="pilihKat('${k.id}')">JADIKAN AKTIF</button>`:''}
-     ${k.sah?'':`<button class="btn sm bad" onclick="if(confirm('Padam kategori ini?'))padamKat('${k.id}')">PADAM</button>`}</div></div>
+     ${k.sah?`<button class="btn sm bad" onclick="padamDisahkan('${k.id}')">🗑 PADAM</button>`:`<button class="btn sm bad" onclick="if(confirm('Padam kategori ini?'))padamKat('${k.id}')">PADAM</button>`}</div></div>
    <div class="tabs">${T('live','▶ PERTANDINGAN')}${T('senarai','SENARAI UNDIAN')}${T('masa','TETAPAN MASA')}${T('keputusan','KEPUTUSAN')}</div>${body}`;
 }
 
@@ -629,6 +629,29 @@ async function padamKat(id){
   try{await DB.remove('pub/kat/'+id);const m=ST.meta;const up={};up['senarai/'+id]=null;
     if(m.aktif===id){const lain=m.senarai.find(x=>x.id!==id);up.aktif=lain?lain.id:'';}
     await DB.update('pub/meta',up);LIHAT='';katDipantau=null;}catch(e){toast('Gagal: '+salahMsg(e),true);}
+}
+/* Padam kategori yang sudah DISAHKAN: wajib PIN KP (disemak oleh Firebase) + salinan automatik */
+function padamDisahkan(id){
+  const k=ST.kat;if(!k||k.id!==id)return;
+  modal(`<h2 style="color:var(--bad)">🗑 PADAM KATEGORI DISAHKAN</h2>
+   <p style="margin-top:0"><b class="up">${esc(k.nama)}</b> · ${esc(namaBorang(k.jenis))} · ${esc(k.acara)}</p>
+   <div class="dqban" style="margin:0 0 12px">Keputusan rasmi ini akan dipadam terus dari sistem dan Firebase. Tindakan ini tidak boleh dibatalkan.</div>
+   <p class="muted" style="font-size:13px">Salinan kategori ini (.json) akan dimuat turun secara automatik sebelum dipadam. Salinan di Google Sheet tidak terjejas.</p>
+   <label>Masukkan PIN KP untuk sahkan</label>
+   <input id="pdPin" type="password" inputmode="numeric" autocomplete="off" style="width:100%;font-size:22px;text-align:center;letter-spacing:8px" onkeydown="if(event.key==='Enter')padamDisahkan2('${id}')">
+   <button class="btn" id="pdBtn" style="width:100%;margin-top:12px;background:var(--bad);color:#fff" onclick="padamDisahkan2('${id}')">🗑 PADAM SEKARANG</button>`);
+  setTimeout(()=>{const i=$('#pdPin');if(i)i.focus();},50);
+}
+async function padamDisahkan2(id){
+  const pin=$('#pdPin').value.trim();if(!pin)return toast('Masukkan PIN KP',true);
+  const b=$('#pdBtn');b.disabled=true;b.textContent='MENYEMAK PIN...';
+  try{await DB.set('login/kp/'+UID,pin);}catch(e){b.disabled=false;b.textContent='🗑 PADAM SEKARANG';$('#pdPin').value='';return toast('PIN KP SALAH',true);}
+  try{
+    const kat=await DB.get('pub/kat/'+id);const sen=await DB.get('pub/meta/senarai/'+id);
+    const nm=('padam-'+(kat&&kat.nama||id)).replace(/[^\w]+/g,'-').toLowerCase()+'-'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'');
+    muatTurun(nm+'.json',JSON.stringify({aplikasi:'PEMARKAHAN-SILAT',versi:1,dicipta:Date.now(),pub:{meta:{senarai:{[id]:sen}},kat:{[id]:kat}}},null,1),'application/json');
+    await padamKat(id);tutupModal();toast('Kategori dipadam. Salinan telah dimuat turun.');
+  }catch(e){b.disabled=false;b.textContent='🗑 PADAM SEKARANG';toast('Gagal: '+salahMsg(e),true);}
 }
 /* --- Catatan juri & ubah markah oleh KP/DJ --- */
 function catatanHTML(k,pid){

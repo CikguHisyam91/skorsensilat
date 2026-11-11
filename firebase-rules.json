@@ -1,0 +1,52 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "sedia": {
+      ".read": true,
+      ".write": "auth != null && !data.exists()"
+    },
+
+    "rahsia": {
+      ".read": "auth != null && root.child('sesi/kp').val() === auth.uid",
+      ".write": "auth != null && (!data.exists() || root.child('sesi/kp').val() === auth.uid)",
+      "$peranan": { ".validate": "newData.isString() && newData.val().length >= 3" }
+    },
+
+    "login": {
+      "$peranan": {
+        "$uid": {
+          ".write": "auth != null && auth.uid === $uid",
+          ".validate": "newData.val() === root.child('rahsia/' + $peranan).val()"
+        }
+      }
+    },
+
+    "sesi": {
+      ".read": true,
+      "$peranan": {
+        ".write": "auth != null && ((newData.val() === auth.uid && root.child('login/' + $peranan + '/' + auth.uid).val() === root.child('rahsia/' + $peranan).val()) || (!newData.exists() && data.val() === auth.uid))"
+      }
+    },
+
+    "pub": {
+      ".read": true,
+      "meta": {
+        ".write": "auth != null && root.child('sesi/kp').val() === auth.uid"
+      },
+      "kat": {
+        "$kat": {
+          ".write": "auth != null && root.child('sesi/kp').val() === auth.uid && (!data.child('sah').exists() || !newData.exists())",
+          "markah": {
+            "$peserta": {
+              "$juri": {
+                ".write": "auth != null && root.child('sesi/juri' + $juri).val() === auth.uid && !root.child('pub/kat/' + $kat + '/sah').exists()"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
