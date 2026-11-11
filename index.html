@@ -463,9 +463,24 @@ async function kp(op,p){
 async function setMeta(kunci,nilai){try{await DB.set('pub/meta/'+kunci,nilai);}catch(e){toast('Gagal: '+salahMsg(e),true);}}
 async function hantarSheet(k,p){
   if(!SHEET_URL)return;
-  try{await fetch(SHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},
-    body:JSON.stringify({kejohanan:(ST.meta||{}).kejohanan||'',kategori:k.nama,jenis:namaBorang(k.jenis),acara:k.acara,tarikh:k.tarikh||'',bilJuri:k.bilJuri,oleh:p.oleh,dj:p.dj,baris:p.keputusan})});
-    toast('Salinan dihantar ke Google Sheet');}catch(e){toast('Salinan ke Google Sheet gagal (data tetap selamat di Firebase)',true);}
+  const body=JSON.stringify({kejohanan:(ST.meta||{}).kejohanan||'',kategori:k.nama,jenis:namaBorang(k.jenis),acara:k.acara,tarikh:k.tarikh||'',bilJuri:k.bilJuri,oleh:p.oleh,dj:p.dj,baris:p.keputusan});
+  try{
+    const r=await fetch(SHEET_URL,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body});
+    const j=await r.json();
+    if(!j.ok)throw new Error(j.ralat||'Ralat Google Sheet');
+    toast('✓ Disalin ke Google Sheet: '+j.fail);
+    try{await DB.update('pub/meta',{sheetUrl:j.url,sheetFail:j.fail});}catch(e){}
+  }catch(e){
+    try{await fetch(SHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body});
+      toast('Dihantar ke Google Sheet (status tidak dapat disahkan). Semak Sheet anda.',true);}
+    catch(e2){toast('Gagal hantar ke Google Sheet. Data tetap selamat dalam sistem.',true);}
+  }
+}
+async function hantarSemulaSheet(){const k=ST.kat;if(!k||!k.sah)return;toast('Menghantar ke Google Sheet...');
+  await hantarSheet(k,{oleh:k.sah.oleh,dj:k.sah.dj,keputusan:k.keputusan||barisKeputusan(k)});}
+async function ujiSheet(){
+  if(!SHEET_URL)return toast('URL Google Sheet belum diisi dalam sistem',true);
+  try{const j=await (await fetch(SHEET_URL)).json();toast(j.ok?'✓ '+j.mesej:'Ralat: '+j.ralat,!j.ok);}catch(e){toast('Tidak dapat menghubungi Google Sheet',true);}
 }
 
 /* ======================= RENDER ======================= */
@@ -680,7 +695,11 @@ function urusData(){
      <p class="muted" style="font-size:13px;margin:0 0 8px">Buka fail salinan (.json). Kategori dalam fail akan dimasukkan semula. Kategori yang sudah DISAHKAN tidak akan ditimpa.</p>
      <button class="btn" onclick="$('#failSalin').click()">📂 PILIH FAIL SALINAN</button>
      <input type="file" id="failSalin" accept=".json" style="display:none" onchange="pulihSalinan(this.files[0])">
-     ${auto?`<p style="font-size:13px;margin:10px 0 0">Salinan automatik peranti ini: <b>${new Date(auto.dicipta).toLocaleString('ms-MY')}</b> (${Object.keys(auto.pub.kat||{}).length} kategori) <button class="btn sm" onclick="pulihData(JSON.parse(localStorage.getItem('salinanAuto')))">PULIH</button></p>`:''}</div>`);
+     ${auto?`<p style="font-size:13px;margin:10px 0 0">Salinan automatik peranti ini: <b>${new Date(auto.dicipta).toLocaleString('ms-MY')}</b> (${Object.keys(auto.pub.kat||{}).length} kategori) <button class="btn sm" onclick="pulihData(JSON.parse(localStorage.getItem('salinanAuto')))">PULIH</button></p>`:''}</div>
+   <div class="neu-in" style="padding:14px;margin-top:12px"><h3>4. GOOGLE SHEET</h3>
+     ${SHEET_URL?`<p class="muted" style="font-size:13px;margin:0 0 8px">Setiap kategori yang DISAHKAN disalin automatik ke fail Google Sheet bernama <b>KEPUTUSAN · ${esc((ST.meta.kejohanan||'KEJOHANAN TANPA NAMA').toUpperCase())}</b> (folder Drive "KEPUTUSAN SILAT").</p>
+       <div class="row" style="gap:8px"><button class="btn sm" onclick="ujiSheet()">🔌 UJI SAMBUNGAN</button>${ST.meta.sheetUrl?`<a class="btn sm ok" style="text-decoration:none" href="${esc(ST.meta.sheetUrl)}" target="_blank" rel="noopener">📊 BUKA ${esc(ST.meta.sheetFail||'GOOGLE SHEET')}</a>`:''}</div>`
+     :'<p class="muted" style="font-size:13px;margin:0">Belum dipasang.</p>'}</div>`);
   const d=$('#modal>div');if(d)d.style.width='min(720px,100%)';
   const dp=$('#dropPukal');['dragenter','dragover'].forEach(e=>dp.addEventListener(e,ev=>{ev.preventDefault();dp.classList.add('over');}));
   ['dragleave','drop'].forEach(e=>dp.addEventListener(e,ev=>{ev.preventDefault();dp.classList.remove('over');}));dp.addEventListener('drop',ev=>bacaPukal(ev.dataTransfer.files[0]));
@@ -871,7 +890,7 @@ function keputusanHTML(k,m){
   return `<div class="neu card" style="overflow-x:auto">
    ${k.sah?`<div class="lock">🔒 DISAHKAN oleh ${esc(k.sah.oleh)} (KP) & ${esc(k.sah.dj)} (DJ) pada ${new Date(k.sah.masa).toLocaleString('ms-MY')}</div>`:''}
    <div class="row"><h3 class="grow" style="margin:0">KEPUTUSAN (DISUSUN IKUT KEDUDUKAN)</h3>
-     <button class="btn gold" onclick="cetak()">🖨 CETAK</button>
+     <button class="btn gold" onclick="cetak()">🖨 CETAK</button>${k.sah&&SHEET_URL?`<button class="btn" onclick="hantarSemulaSheet()">📤 HANTAR KE GOOGLE SHEET</button>`:''}
      ${k.sah?'':`<button class="btn ok" onclick="sahkan()">✔ SAHKAN KEPUTUSAN</button>`}</div>
    ${belum.length?`<p style="color:var(--warn);font-weight:700">⚠ ${belum.length} peserta belum lengkap markah juri: ${belum.map(r=>esc(r.undian)).join(', ')}</p>`:''}
    <table><tr><th class="num">KED.</th><th class="num">UNDIAN</th><th>NAMA</th><th>PASUKAN</th>${thJ(k.bilJuri||3)}<th class="num">${isPesaka(k)?'BHG. A':'WIRAGA/A'}</th><th></th><th class="num">MASA</th><th class="num">TOLAK</th><th class="num">JUMLAH</th></tr>
