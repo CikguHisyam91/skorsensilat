@@ -16,7 +16,7 @@
 var NAMA_FOLDER = 'KEPUTUSAN SILAT';
 
 function doGet() {
-  return jsonOut({ ok: true, mesej: 'Sambungan Google Sheet berjaya', versi: 2 });
+  return jsonOut({ ok: true, mesej: 'Sambungan Google Sheet berjaya', versi: 3 });
 }
 
 function doPost(e) {
@@ -42,15 +42,19 @@ function dapatkanFail(kejohanan) {
   var kunci = 'ss:' + kejohanan;
   var id = props.getProperty(kunci);
   if (id) {
-    try { return SpreadsheetApp.openById(id); } catch (x) { /* fail dipadam, cipta semula */ }
+    try {
+      if (!DriveApp.getFileById(id).isTrashed()) return SpreadsheetApp.openById(id);
+    } catch (x) { /* fail dipadam terus */ }
   }
   var folder = dapatkanFolder();
   var namaFail = 'KEPUTUSAN · ' + kejohanan;
   var cari = folder.getFilesByName(namaFail);
-  var ss;
-  if (cari.hasNext()) {
-    ss = SpreadsheetApp.open(cari.next());
-  } else {
+  var ss = null;
+  while (cari.hasNext()) {
+    var f = cari.next();
+    if (!f.isTrashed()) { ss = SpreadsheetApp.open(f); break; }
+  }
+  if (!ss) {
     ss = SpreadsheetApp.create(namaFail);
     DriveApp.getFileById(ss.getId()).moveTo(folder);
     var r = ss.getSheets()[0];
