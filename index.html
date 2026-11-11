@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pemarkahan Seni Silat</title>
+<!-- Firebase (percuma, pelan Spark) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Urbanist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#e7ebf0; --bg2:#eef1f5; --ink:#1f2a37; --muted:#6b7686;
+  --hi:#ffffff; --lo:#c3cad4;
+  --accent:#8c1d2c; --accent2:#b8892b; --ok:#1f8a5b; --warn:#c77700; --bad:#c0392b;
+  --r:18px;
+}
+:root[data-theme="dark"]{
+  --bg:#22262d; --bg2:#272c34; --ink:#e7eaef; --muted:#9aa4b2;
+  --hi:#2d323b; --lo:#171a1f;
+  --accent:#e0566a; --accent2:#e2b452; --ok:#3ccf8e; --warn:#f0a43a; --bad:#ff6b5e;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:'Urbanist',system-ui,sans-serif}
+body{min-height:100vh}
+button,input,select,textarea{font-family:inherit;color:inherit}
+.up{text-transform:uppercase}
+.wrap{max-width:1300px;margin:0 auto;padding:16px}
+.neu{background:var(--bg);border-radius:var(--r);box-shadow:7px 7px 16px var(--lo),-7px -7px 16px var(--hi)}
+.neu-in{background:var(--bg);border-radius:14px;box-shadow:inset 4px 4px 9px var(--lo),inset -4px -4px 9px var(--hi)}
+.card{padding:18px;margin-bottom:18px}
+h1,h2,h3{margin:0 0 10px;letter-spacing:.3px}
+h1{font-size:22px;font-weight:900}
+h2{font-size:18px;font-weight:800}
+h3{font-size:15px;font-weight:800;color:var(--muted)}
+.muted{color:var(--muted)}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.grow{flex:1}
+.btn{border:0;cursor:pointer;padding:11px 18px;border-radius:14px;font-weight:800;font-size:14px;background:var(--bg);
+  box-shadow:5px 5px 11px var(--lo),-5px -5px 11px var(--hi);transition:.12s;letter-spacing:.3px}
+.btn:active,.btn.on{box-shadow:inset 4px 4px 9px var(--lo),inset -4px -4px 9px var(--hi)}
+.btn.pri{background:var(--accent);color:#fff;box-shadow:5px 5px 11px var(--lo),-5px -5px 11px var(--hi)}
+.btn.gold{background:var(--accent2);color:#1b1b1b}
+.btn.ok{background:var(--ok);color:#fff}
+.btn.bad{color:var(--bad)}
+.btn.sm{padding:7px 11px;font-size:12px;border-radius:10px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+input,select,textarea{border:0;outline:0;padding:11px 14px;border-radius:12px;background:var(--bg);font-size:15px;
+  box-shadow:inset 4px 4px 9px var(--lo),inset -4px -4px 9px var(--hi)}
+textarea{width:100%;min-height:200px;resize:vertical;font-size:14px;line-height:1.5}
+label{font-size:12px;font-weight:800;color:var(--muted);display:block;margin:0 0 6px;text-transform:uppercase}
+.topbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px;padding:14px 18px}
+.logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-weight:900;color:#fff;background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.tabs{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.grid2{display:grid;grid-template-columns:300px 1fr;gap:18px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.katitem{padding:12px 14px;margin-bottom:10px;cursor:pointer;border-radius:14px}
+.katitem.on{box-shadow:inset 4px 4px 9px var(--lo),inset -4px -4px 9px var(--hi)}
+.katitem b{display:block;font-size:14px}
+.badge{white-space:nowrap;display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:800;letter-spacing:.4px}
+.b-ok{background:var(--ok);color:#fff}.b-wait{background:var(--warn);color:#fff}.b-ud{background:var(--bad);color:#fff}.b-gold{background:var(--accent2);color:#1b1b1b}
+.now{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center}
+.giliran{width:110px;height:110px;border-radius:24px;display:grid;place-items:center;font-size:52px;font-weight:900;color:var(--accent)}
+.nama{font-size:26px;font-weight:900;text-transform:uppercase;line-height:1.1}
+.juristat{align-items:center;display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.chip{padding:9px 14px;border-radius:12px;font-weight:800;font-size:13px}
+.chip.done{color:var(--ok)}.chip.cwait{color:var(--bad)}
+table{width:100%;border-collapse:separate;border-spacing:0 6px;font-size:14px}
+th{font-size:11px;text-transform:uppercase;color:var(--muted);text-align:left;padding:4px 8px;letter-spacing:.5px}
+td{padding:9px 8px;background:var(--bg2)}
+td:first-child{border-radius:10px 0 0 10px}td:last-child{border-radius:0 10px 10px 0}
+tr.cur td{outline:2px solid var(--accent2);outline-offset:-2px}
+tr.ud td{opacity:.5;text-decoration:line-through}
+.num{text-align:center;font-variant-numeric:tabular-nums}
+.big{font-size:20px;font-weight:900}
+.stopwatch{font-size:44px;font-weight:900;font-variant-numeric:tabular-nums;padding:10px 20px;text-align:center}
+.cnt{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:8px 10px;margin-bottom:8px}
+.cnt span.n{min-width:26px;text-align:center;font-weight:900}
+.drop{border:2px dashed var(--muted);border-radius:16px;padding:22px;text-align:center;cursor:pointer;margin-bottom:12px}
+.drop.over{border-color:var(--accent);color:var(--accent)}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);padding:12px 20px;border-radius:14px;font-weight:800;z-index:99;display:none;max-width:90vw}
+.lock{padding:14px 18px;border-radius:14px;background:var(--ok);color:#fff;font-weight:800;margin-bottom:14px}
+/* JURI */
+.jhead{position:sticky;top:0;z-index:5;padding:12px 14px;margin:-16px -16px 14px;background:var(--bg);box-shadow:0 6px 14px var(--lo)}
+.sek{padding:14px;margin-bottom:16px}
+.item{padding:10px 0;border-bottom:1px solid var(--lo)}
+.item:last-child{border:0}
+.item .t{flex-wrap:wrap;font-weight:800;font-size:15px;display:flex;justify-content:space-between;gap:8px}
+.opts{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;margin-top:8px}
+.opt{min-width:0;padding:12px 0;border:0;border-radius:12px;font-weight:900;font-size:17px;background:var(--bg);cursor:pointer;
+  box-shadow:4px 4px 9px var(--lo),-4px -4px 9px var(--hi)}
+.opt.on{background:var(--accent);color:#fff;box-shadow:inset 3px 3px 7px rgba(0,0,0,.3)}
+.jfoot{position:sticky;bottom:0;padding:12px 14px;margin:0 -16px -16px;background:var(--bg);box-shadow:0 -6px 14px var(--lo);display:flex;gap:12px;align-items:center}
+.wait{text-align:center;padding:60px 20px}
+/* PENONTON */
+.pen{min-height:100vh;display:flex;flex-direction:column;padding:3vw;gap:2vw}
+.pen .kat{font-size:3vw;font-weight:900;color:var(--accent);text-transform:uppercase}
+.pen .main{display:grid;grid-template-columns:auto 1fr;gap:3vw;align-items:center;padding:3vw}
+.pen .gil{font-size:12vw;font-weight:900;color:var(--accent2);line-height:1}
+.pen .nm{font-size:5vw;font-weight:900;text-transform:uppercase;line-height:1.05}
+.pen .ps{font-size:2.6vw;font-weight:700;color:var(--muted);text-transform:uppercase}
+.pen .skor{font-size:6vw;font-weight:900;color:var(--accent)}
+.pen table{font-size:1.8vw}
+/* CETAK */
+#cetak{display:none}
+@media print{
+  body{background:#fff;color:#000}
+  .noprint{display:none!important}
+  #cetak{display:block;text-transform:uppercase;font-family:'Urbanist',sans-serif;color:#000}
+  #cetak table{border-collapse:collapse;font-size:12px}
+  #cetak th,#cetak td{border:1px solid #000;padding:6px;background:#fff;color:#000;border-radius:0}
+  #cetak h1{text-align:center;font-size:18px}#cetak h2{text-align:center;font-size:14px}
+  .sign{display:flex;justify-content:space-between;margin-top:50px;font-size:12px}
+  .sign div{width:45%}
+  @page{size:A4 landscape;margin:12mm}
+}
+.jok{color:var(--ok);font-weight:900;white-space:nowrap}.jx{color:var(--bad);font-weight:900;white-space:nowrap}
+.item .st{font-weight:900;font-size:16px;margin-right:6px}
+.item.belum .t>span:first-child{color:var(--bad)}
+.opt.m{outline:2px dashed var(--accent2);outline-offset:-4px}
+.net{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;padding:6px 10px;border-radius:20px}
+.net i{width:9px;height:9px;border-radius:50%;background:var(--bad);display:inline-block}
+.net.on i{background:var(--ok)}
+.prog{font-size:13px;font-weight:800}
+.notis{padding:12px 14px;border-radius:12px;background:var(--bad);color:#fff;font-weight:800;margin-bottom:12px}
+.poster{background:#fff;color:#111;border-radius:14px;padding:22px;text-align:center;font-family:'Urbanist',sans-serif;text-transform:uppercase;border:1px solid var(--lo)}
+.poster .pk{font-size:12px;font-weight:800;letter-spacing:1px;color:#8c1d2c}
+.poster .pj{font-size:56px;font-weight:900;line-height:1;margin:8px 0;color:#111}
+.poster .pq svg{width:100%;max-width:260px;height:auto}
+.poster ol{text-align:left;font-size:13px;font-weight:700;margin:10px auto;max-width:280px;padding-left:20px}
+.poster .pu{font-size:9px;text-transform:none;word-break:break-all;color:#555}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin:12px 0}
+.plink{display:flex;align-items:center;gap:10px;padding:12px 14px;margin-bottom:10px;text-decoration:none;color:inherit;font-weight:800}
+@media print{
+  #cetak .poster{page-break-after:always;break-after:page;border:0;min-height:260mm;display:flex;flex-direction:column;justify-content:center;gap:4mm;padding:10mm}
+  #cetak .poster:last-child{page-break-after:auto;break-after:auto}
+  #cetak .poster .pk{font-size:20px}#cetak .poster .pj{font-size:110px}
+  #cetak .poster .pq svg{max-width:120mm;margin:0 auto}
+  #cetak .poster ol{font-size:20px;max-width:150mm}#cetak .poster .pu{font-size:13px}
+  #cetak .poster .bar{height:8mm;background:linear-gradient(90deg,#8c1d2c,#b8892b);border-radius:4mm}
+}
+.jin{width:100%;font-size:34px;font-weight:900;text-align:center;padding:12px;letter-spacing:2px;margin-top:8px}
+.jin::placeholder{font-size:18px;font-weight:700;opacity:.4;letter-spacing:0}
+.jin.ok{color:var(--ok)}.jin.bad{color:var(--bad);box-shadow:inset 4px 4px 9px var(--lo),inset -4px -4px 9px var(--hi),0 0 0 2px var(--bad)}
+.jerr{color:var(--bad);font-size:12px;font-weight:800;margin-top:4px;min-height:14px}
+.jh{display:flex;align-items:center;gap:10px}
+.jh .logo{width:38px;height:38px;border-radius:11px;font-size:15px;flex:none}
+.jh .ti{flex:1;min-width:0;line-height:1.15}
+.jh .ti b{font-size:17px}
+.jh .ti span{display:block;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--bad);margin-left:6px;vertical-align:middle}.dot.on{background:var(--ok)}
+.ib{padding:9px 11px;font-size:14px;flex:none}
+.jinfo{display:flex;gap:12px;align-items:center;padding:12px 14px;margin-bottom:14px}
+.jinfo .giliran{width:62px;height:62px;font-size:30px;border-radius:16px;flex:none}
+.jinfo .nama{font-size:18px}
+.item .t{flex-direction:column;align-items:flex-start;gap:6px}
+@media(max-width:480px){
+  .wrap{padding:12px}.jhead{margin:-12px -12px 12px;padding:10px 12px}.jfoot{margin:0 -12px -12px;padding:10px 12px}
+  .sek{padding:12px}.opt{font-size:15px;padding:11px 0}.item .t{font-size:14px}
+}
+.kr{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--lo)}
+.kr:last-child{border:0}.kn{flex:1;min-width:0;line-height:1.15}.kn b{display:block;font-size:15px}.kn span{font-size:11px}
+.kc{min-width:38px;text-align:center;font-size:20px;font-weight:900}
+.kp1{padding:11px 12px;font-size:13px;color:var(--bad);flex:none}
+.grp{margin:12px 0 2px;padding:6px 10px;border-radius:10px;font-size:12px;font-weight:900;letter-spacing:1px;text-transform:uppercase;background:var(--accent2);color:#1b1b1b}
+.btn.dqb{width:100%;color:var(--bad);border:2px solid var(--bad);margin-bottom:14px}
+.dqopt{display:flex;gap:10px;align-items:center;padding:12px;margin-bottom:8px;border-radius:12px;cursor:pointer;font-weight:700}
+.dqopt input{width:22px;height:22px;flex:none}
+.dqban{padding:12px 14px;border-radius:12px;background:var(--bad);color:#fff;font-weight:800;margin-top:12px;font-size:14px}
+</style>
+</head>
+<body>
+<div id="app" class="noprint"></div>
+<div id="cetak"></div>
+<div id="toast" class="toast neu"></div>
+
+<script>
+/* ======================================================================
+   TETAPAN — ISI SEKALI SAHAJA (lihat PANDUAN.md)
+   ====================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAjMUEjCXywf8uyfVhwYVkbfMTzjR4SiyM",
+  authDomain: "skorsenisilat.firebaseapp.com",
+  databaseURL: "https://skorsenisilat-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "skorsenisilat",
+  storageBucket: "skorsenisilat.firebasestorage.app",
+  messagingSenderId: "867794027490",
+  appId: "1:867794027490:web:9d2797470bc53169de2fbb"
+};
+/* Pilihan: URL Web App Google Sheet untuk salinan keputusan yang disahkan */
+const SHEET_URL = "";
+</script>
+<script>
+const Q=new URLSearchParams(location.search);
+const VIEW=Q.get('v')||'utama', JURI_NO=Q.get('j')||'';
+const APP_URL=location.href.split('?')[0].split('#')[0];
+const ROLE=VIEW==='kp'?'kp':VIEW==='juri'?'juri'+JURI_NO:'';
+</script>
+<script>
+/* ======================= BORANG KPM ======================= */
+const S2=[-2,-1,0,1,2], S4=[-4,-3,-2,-1,0,1,2,3,4], S1=[-1,0,1], SH=[-1,-0.5,0,0.5,1], SP=[0,-1,-2];
+const I=(k,n,mak,m,adj)=>({k,n,mak,m,adj});
+const WIRASA=(p)=>[I('c1',p,10,6,S2),I('c2','Kemantapan Ekspresi',10,6,S2),I('c3','Tertib Masuk',2,1,S1),I('c4','Salam Perguruan',4,3,SH),I('c5','Masa Persembahan',2,1,S1),I('c6','Tertib Keluar',2,1,S1)];
+const BORANG={
+  I:{nama:'Kategori I : Seni Tari Silat',sek:[
+    {k:'A',n:'Wiraga',item:[I('a1','Kekayaan Gerak Tari',20,12,S4),I('a2','Kematangan Tari',10,6,S2),I('a3','Keindahan Tari',10,6,S2),I('a4','Kaedah Silat',10,6,S2),I('a5','Kelengkapan & Keserasian Pakaian',10,6,S2)]},
+    {k:'B',n:'Wirama',item:[I('b1','Ketepatan Tari Dengan Irama',5,3,S2),I('b2','Keserasian Tari dan Irama',5,3,S2)]},
+    {k:'C',n:'Wirasa',item:WIRASA('Penghayatan / Angin')}]},
+  II:{nama:'Kategori II : Seni Tempur Silat',sek:[
+    {k:'A',n:'Teknik Serang dan Bela',item:[I('a1','Serangan / Belaan Yang Logik',10,6,S2),I('a2','Sikap Awal, Lintasan & Kekuatan',10,6,S2),I('a3','Kaedah Pencak Silat',10,6,S2),I('a4','Keberkesanan Serangan & Belaan',10,6,S2)]},
+    {k:'B',n:'Kekayaan Teknik',item:[I('b1','Keanekaragaman Teknik',10,6,S2),I('b2','Jumlah Teknik Serangan / Belaan',10,6,S2)]},
+    {k:'C',n:'Ketangkasan dan Ketepatan',item:[I('c1','Ketepatan Waktu Serang / Belaan',10,6,S2),I('c2','Ketangkasan Serangan / Belaan',10,6,S2)]},
+    {k:'D',n:'Daya Tahan dan Pernafasan',item:[I('d1','Daya Tahan Tubuh, Pernafasan & Pemanfaatan Tenaga',10,6,S2)]},
+    {k:'E',n:'Kemantapan Sikap',item:[I('e1','Tertib Masuk',2,1,S1),I('e2','Salam Perguruan',4,3,SH),I('e3','Sikap Tegas & Berani',2,1,S1),I('e4','Tertib Keluar',2,1,S1)]}]},
+  III:{nama:'Kategori III : Seni Silat Asli',sek:[
+    {k:'A',n:'Tapak Sembah',item:[I('a1','Maknawi',10,6,S2),I('a2','Langkah & Limbai',10,6,S2),I('a3','Penghayatan / Angin',10,6,S2)]},
+    {k:'B',n:'Tapak Empat',item:[I('b1','Pola Langkah',10,6,S2),I('b2','Penghayatan / Angin',10,6,S2)]},
+    {k:'C',n:'Melilit',item:[I('c1','Buah Pukul',10,6,S2),I('c2','Penangkap',10,6,S2),I('c3','Pelepas',10,6,S2),I('c4','Estetika & Daya Tarik',10,6,S2)]},
+    {k:'D',n:'Berdamai',item:[I('d1','Ajak & Sambut',5,3,S2),I('d2','Sembah Penutup',5,3,S2)]},
+    {k:'E',n:'Penolakan (Juri)',item:[I('e1','Tertib Masuk',0,0,SP),I('e2','Tertib Keluar',0,0,SP),I('e3','Kesopanan',0,0,SP),I('e4','Pakaian',0,0,SP)]}]},
+  IV:{nama:'Kategori IV : Seni Jurus Silat',sek:[
+    {k:'A',n:'Wiraga',item:[I('a1','Kekayaan Gerak',10,6,S2),I('a2','Kemantapan Gerak',10,6,S2),I('a3','Keseragaman Gerak',10,6,S2),I('a4','Kaedah Pencak Silat',10,6,S2),I('a5','Keserasian Pakaian',10,6,S2)]},
+    {k:'B',n:'Wirama',item:[I('b1','Ketepatan Gerak Dengan Irama',10,6,S2),I('b2','Keserasian Gerak dan Irama',10,6,S2)]},
+    {k:'C',n:'Wirasa',item:WIRASA('Penghayatan Gerak')}]}
+};
+const PENOLAKAN=[
+  {k:'aks',n:'Jatuh Aksesori',v:1,max:null},
+  {k:'pijak',n:'Pijak Tengkolok',v:1,max:5},
+  {k:'keluar',n:'Keluar Gelanggang',v:1,max:5},
+  {k:'tengkolok',n:'Jatuh Tengkolok',v:2,max:null},
+  {k:'ludah',n:'Meludah',v:2,max:null},
+  {k:'lucah',n:'Isyarat Lucah / Melampau Batas',v:2,max:null}
+];
+const ACARA=['LSM','PSM','LSR','PSR'];
+/* ---- FORMAT PESAKA ---- */
+const J=(k,n,mak,min,max,unsur)=>({k,n,mak,m:min,adj:Array.from({length:max-min+1},(_,i)=>i),julat:[min,max],unsur});
+Object.keys(BORANG).forEach(k=>{BORANG[k].format='KPM';BORANG[k].acara=ACARA;});
+const USIA_PESAKA=['PRA TUNAS','TUNAS','PRA DINI','DINI','PRA REMAJA','REMAJA','DEWASA (SUKMA)','BEBAS'];
+const ACARA_PESAKA=USIA_PESAKA.flatMap(u=>[u+' PUTRA',u+' PUTRI']);
+const usiaMuda=a=>/^(PRA TUNAS|TUNAS|PRA DINI|DINI) /.test(String(a||''));
+BORANG.PS={nama:'Solo Kreatif',format:'PESAKA',acara:ACARA_PESAKA,
+  masa:{sasaran:180,toleransi:0,tolakLebih:true,tier:[{dari:15,hingga:30,tolak:5},{dari:31,hingga:60,tolak:10},{dari:61,hingga:9999,tolak:10}]},
+  tolak:[{k:'aks',n:'Jatuh Aksesori',v:5,max:null},{k:'keluar',n:'Keluar Gelanggang',v:5,max:null}],
+  sek:[{k:'A',n:'Wiraga',item:[J('a','Nilai Wiraga',60,25,50,'Kekayaan Teknik · Kemantapan Gerak · Pengerapan Gerak · Keterampilan · Keserasian Pakaian')]},
+       {k:'B',n:'Wirasa',item:[J('b','Nilai Wirasa',40,15,30,'Penjiwaan Gerak · Kemantapan / Ekspresi · Sopan · Etika')]}]};
+BORANG.PS.kaedah='median';
+BORANG.PG={nama:'Ganda',format:'PESAKA',kaedah:'median',acara:ACARA_PESAKA,
+  masa:{sasaran:180,toleransi:0,tolakLebih:true,tier:[{dari:15,hingga:30,tolak:5},{dari:31,hingga:60,tolak:10},{dari:61,hingga:9999,tolak:10}]},
+  tolak:[{k:'garis',n:'Keluar Garisan',v:5,max:null},{k:'senjata',n:'Senjata Lepas',v:5,max:null},{k:'pakaian',n:'Pakaian / Ukuran Senjata Tidak Sesuai',v:5,max:null}],
+  sek:[{k:'A',n:'Nilai Teknik',item:[J('a','Nilai Teknik',80,50,80,'Kekayaan Teknik Tangan Kosong & Bersenjata · Kemahiran Gerak · Aspek Logika · Kreativiti Peragaan')]},
+       {k:'B',n:'Kemantapan & Kekompakan',item:[J('b','Nilai Kemantapan & Kekompakan',60,50,60,'Kemantapan Gerak · Kekompakan Peragaan · Keberanian Bersenjata · Tenaga dan Stamina')]},
+       {k:'C',n:'Keserasian Penghayatan',item:[J('c','Nilai Keserasian Penghayatan',60,50,60,'Keserasian Ekspresi dan Gerakan · Keserasian Irama dengan Gerakan')]}]};
+/* REGU: 12 jurus, 100 gerakan; juri kira kesalahan (-1 setiap gerakan) */
+const JURUS_REGU=[9,18,28,37,44,52,61,72,81,85,93,100];
+BORANG.PR={nama:'Regu',format:'PESAKA',kaedah:'median',acara:ACARA_PESAKA,
+  masa:{sasaran:180,toleransi:0,tolakLebih:true,tier:[{dari:6,hingga:10,tolak:10},{dari:11,hingga:15,tolak:15},{dari:16,hingga:9999,tolak:20}]},
+  tolak:[{k:'garis',n:'Keluar Garisan',v:5,max:null},{k:'pakaian',n:'Pakaian Tidak Sesuai',v:5,max:null}],
+  sek:[{k:'A',n:'Nilai Kebenaran',base:100,
+        nota:'Tolak 1 bagi setiap kesalahan: rincian gerakan · urutan gerakan · gerakan tidak ditampilkan · urutan jurus',
+        item:JURUS_REGU.map((hingga,i)=>{const dari=i?JURUS_REGU[i-1]+1:1,mov=hingga-dari+1;
+          return{k:'j'+(i+1),n:'Jurus '+(i+1),mak:mov,m:0,adj:Array.from({length:mov+1},(_,x)=>x),kira:true,dari,hingga};})},
+       {k:'B',n:'Kemantapan / Penghayatan / Stamina',item:[J('b','Nilai Kemantapan / Penghayatan / Stamina',60,50,60,'Kemantapan · Penghayatan · Stamina')]}]};
+BORANG.PR.jdq=true;
+function binaJurus(ends,grp){return ends.map((hingga,i)=>{const dari=i?ends[i-1]+1:1,mov=hingga-dari+1;
+  return{k:'j'+(i+1),n:'Jurus '+(i+1),mak:mov,m:0,adj:Array.from({length:mov+1},(_,x)=>x),kira:true,dari,hingga,grp:grp?grp(i+1):''};});}
+BORANG.PT={nama:'Tunggal',format:'PESAKA',kaedah:'median',jdq:true,
+  acara:ACARA_PESAKA,
+  masa:{sasaran:180,toleransi:0,tolakLebih:true,tier:[{dari:6,hingga:10,tolak:10},{dari:11,hingga:15,tolak:15},{dari:16,hingga:9999,tolak:20}]},
+  tolak:[{k:'garis',n:'Liwat / Luar Garis',v:5,max:null},{k:'senjata',n:'Senjata Lepas',v:5,max:null},{k:'pakaian',n:'Pakaian / Ukuran Senjata Tidak Sesuai',v:5,max:null}],
+  sek:[{k:'A',n:'Nilai Kebenaran',base:100,
+        nota:'Tolak 1 bagi setiap kesalahan: rincian gerakan · urutan gerak · gerakan tidak ditampilkan · urutan jurus',
+        item:binaJurus([7,13,18,25,31,39,50,57,63,75,81,86,91,100],n=>n<=7?'Tangan Kosong':n<=10?'Golok / Parang':'Tongkat / Toya')},
+       {k:'B',n:'Kemantapan / Penghayatan / Stamina',item:[J('b','Nilai Kemantapan / Penghayatan / Stamina',60,50,60,'Kemantapan · Penghayatan · Stamina')]}]};
+/* Tunggal peringkat Pra Tunas–Dini: Jurus 1–7 (Tangan Kosong) sahaja, 1:30 */
+/* Tunggal sahaja: KP boleh pilih Jurus 1 hingga N (Regu sentiasa 12 jurus penuh). Kod jenis 'PT@7' = Tunggal Jurus 1–7 */
+const indukJenis=j=>String(j).split('@')[0].replace(/^PTK$/,'PT');
+const bilJurus=j=>{if(indukJenis(j)!=='PT')return 0;const B=BORANG[indukJenis(j)];return B&&B.sek[0].item[0]&&B.sek[0].item[0].kira?B.sek[0].item.length:0;};
+function pastiBorang(j){
+  if(BORANG[j])return BORANG[j];
+  const b=indukJenis(j),n=j==='PTK'?7:+String(j).split('@')[1],B0=BORANG[b];if(!B0||!n)return null;
+  const it=B0.sek[0].item.slice(0,n);
+  return BORANG[j]=Object.assign({},B0,{nama:B0.nama+' (Jurus 1–'+n+')',sembunyi:true,induk:b,
+    sek:[Object.assign({},B0.sek[0],{base:it[n-1].hingga,item:it})].concat(B0.sek.slice(1))});
+}
+function jenisDgnJurus(j,n){const b=indukJenis(j),T=bilJurus(b);if(!T||!n||n>=T)return b;const x=b+'@'+n;pastiBorang(x);return x;}
+const jurusLalai=(j,acara)=>{const b=indukJenis(j);return b==='PT'&&usiaMuda(acara)?7:bilJurus(b);};
+function jenisSebenar(j,acara){return jenisDgnJurus(j,jurusLalai(j,acara));}
+function masaLalai(j,acara){const b=indukJenis(j),B=BORANG[b];if(B.format==='PESAKA'&&usiaMuda(acara)&&(b==='PS'||b==='PT'))return 90;return B.masa?B.masa.sasaran:(b==='III'?180:120);}
+function jurusOpsyen(j,pilih){const T=bilJurus(j);return Array.from({length:T},(_,i)=>i+1).map(n=>{const it=BORANG[indukJenis(j)].sek[0].item[n-1];
+  return `<option value="${n}" ${n===pilih?'selected':''}>Jurus 1 – ${n}  (${it.hingga} gerakan · nilai ${it.hingga})</option>`;}).join('');}
+const SEBAB_DQ=['3 kesalahan jurus berturut-turut','Salah arah','Terlangkau jurus','Tersalah susunan jurus / babak','Lain-lain'];
+function ubahKira(k,d,max){PIL[k]=Math.max(0,Math.min(max,(PIL[k]||0)+d));renderJuri();}
+const maksBorang=j=>BORANG[j].sek.reduce((t,s)=>t+s.item.reduce((u,it)=>u+(it.mak||0),0),0);
+const isPesaka=k=>BORANG[k.jenis]&&BORANG[k.jenis].format==='PESAKA';
+const skor=r=>r.papar!=null?r.papar:fx(r.jumlah);
+const senaraiTolak=k=>(BORANG[k.jenis]&&BORANG[k.jenis].tolak)||PENOLAKAN;
+const namaBorang=j=>BORANG[j]?(BORANG[j].format==='PESAKA'?'PESAKA · ':'KPM · ')+BORANG[j].nama:'';
+
+/* ======================= UTILITI ======================= */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fx=n=>n==null||n===''?'—':(Math.round(n*100)/100).toString();
+const mmss=s=>s==null||s===''?'—':Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0');
+function bacaMasa(t){t=String(t||'').trim();if(!t)return null;if(t.includes(':')){const[a,b]=t.split(':');return (+a||0)*60+(+b||0);}return +t||0;}
+function toast(msg,bad){const t=$('#toast');t.textContent=msg;t.style.display='block';t.style.color=bad?'var(--bad)':'var(--ok)';clearTimeout(t._h);t._h=setTimeout(()=>t.style.display='none',2600);}
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v);}catch(e){return null;}}
+function setTema(t){document.documentElement.dataset.theme=t;store('tema',t);}
+setTema(store('tema')||'light');
+const temaBtn=()=>`<button class="btn sm" onclick="setTema(document.documentElement.dataset.theme==='dark'?'light':'dark');render()">${document.documentElement.dataset.theme==='dark'?'☀ MOD SIANG':'☾ MOD MALAM'}</button>`;
+
+/* ======================= PENGIRAAN ======================= */
+function skorJuri(jenis,v){
+  const B=BORANG[jenis];let jum=0,sek={};
+  B.sek.forEach(s=>{let t=0;s.item.forEach(it=>{const x=v&&v[it.k]!=null?v[it.k]:it.m;t+=x;});if(s.base!=null)t=s.base-t;sek[s.k]=t;jum+=t;});
+  return{jum,sek};
+}
+function tolakMasa(kat,saat){
+  if(saat==null)return 0;const M=kat.masa;const d=saat-M.sasaran;
+  let beza=0;if(d<0)beza=-d-(M.toleransi||0);else if(M.tolakLebih)beza=d-(M.toleransi||0);
+  if(beza<=0)return 0;const t=(M.tier||[]).find(x=>beza>=x.dari&&beza<=x.hingga);return t?+t.tolak:0;
+}
+function tolakKes(senarai,kat){
+  let t=0;(kat?senaraiTolak(kat):PENOLAKAN).forEach(p=>{const n=(senarai&&senarai[p.k])||0;let v=n*p.v;if(p.max)v=Math.min(v,p.max);t+=v;});return t;
+}
+function kira(kat){
+  const nJ=kat.bilJuri||3;
+  const rows=kat.peserta.map(p=>{
+    const m=kat.markah[p.id]||{};const j=[];let kasar=0,wir=0,ada=0;
+    const sk=[];for(let i=1;i<=nJ;i++){const r=m[i];if(r){const s=skorJuri(kat.jenis,r.v);j.push(s.jum);sk.push({i,jum:s.jum,A:s.sek.A});ada++;}else j.push(null);}
+    let guna=sk,buang=[];
+    if(kat.buangHL&&nJ===5&&sk.length===5){const o=sk.slice().sort((a,b)=>a.jum-b.jum);buang=[o[0].i,o[4].i];guna=o.slice(1,4);}
+    guna.forEach(x=>{kasar+=x.jum;wir+=x.A;});
+    let purata=null,median=null;
+    if(guna.length){purata=Math.round(guna.reduce((t,x)=>t+x.jum,0)/guna.length*100)/100;
+      const o=guna.map(x=>x.jum).sort((a,b)=>a-b),h=Math.floor(o.length/2);median=o.length%2?o[h]:(o[h-1]+o[h])/2;}
+    if(kat.kaedah==='purata'&&guna.length){kasar=purata;wir=Math.round(wir/guna.length*100)/100;}
+    if(kat.kaedah==='median'&&guna.length){kasar=median;wir=Math.round(wir/guna.length*100)/100;}
+    const saat=kat.rekodMasa[p.id];const tm=tolakMasa(kat,saat);const tk=tolakKes(kat.tolak[p.id],kat);
+    const lengkap=ada===nJ;
+    const jdq=[];for(let i=1;i<=nJ;i++)if(m[i]&&m[i].dq)jdq.push({j:i,sebab:m[i].dq.sebab});
+    const dqCadangan=jdq.map(x=>'J'+x.j+': '+x.sebab).join(' | ');
+    return{...p,jdq,dqCadangan,dqCukup:jdq.length>=Math.ceil(nJ*2/3),dqSebab:p.dqSebab||dqCadangan,j,buang,ada,lengkap:lengkap&&(!jdq.length||!!p.dq),kasar,wiraga:wir,saat,tm,tk,tolak:tm+tk,jumlah:Math.round((kasar-tm-tk)*100)/100,purata,median,
+      beza:saat==null?1e9:Math.abs(saat-kat.masa.sasaran)};
+  });
+  if(kat.skala10){const M=maksBorang(kat.jenis);rows.forEach(r=>{if(r.ada)r.papar=(r.jumlah/M*10).toFixed(2);});}
+  const sah=rows.filter(r=>!r.ud&&r.lengkap).sort((a,b)=>b.jumlah-a.jumlah||b.wiraga-a.wiraga||a.beza-b.beza||a.tolak-b.tolak);
+  sah.forEach((r,i)=>{r.kedudukan=i+1;const p=sah[i-1];
+    if(p&&p.jumlah===r.jumlah){r.seri=true;p.seri=true;
+      if(p.wiraga===r.wiraga&&p.beza===r.beza&&p.tolak===r.tolak){r.kedudukan=p.kedudukan;}}});
+  return{rows,sah};
+}
+const susunUndian=a=>a.slice().sort((x,y)=>(+x.undian||0)-(+y.undian||0));
+
+/* ======================= CSV / TEKS ======================= */
+function parseCSV(text){
+  text=text.replace(/^\uFEFF/,'').replace(/\r\n?/g,'\n');
+  const first=text.split('\n').find(l=>l.trim())||'';
+  const cnt=d=>first.split(d).length;
+  const delim=['\t',';',','].sort((a,b)=>cnt(b)-cnt(a))[0];
+  const rows=[];let row=[],f='',q=false;
+  for(let i=0;i<text.length;i++){const c=text[i];
+    if(q){if(c==='"'){if(text[i+1]==='"'){f+='"';i++;}else q=false;}else f+=c;}
+    else if(c==='"'&&f.trim()==='')q=true;
+    else if(c===delim){row.push(f);f='';}
+    else if(c==='\n'){row.push(f);rows.push(row);row=[];f='';}
+    else f+=c;}
+  row.push(f);rows.push(row);
+  return rows.map(r=>r.map(x=>x.trim())).filter(r=>r.some(x=>x));
+}
+function keSenarai(rows){
+  if(!rows.length)return[];
+  let iU=-1,iN=-1,iP=-1,mula=0;
+  const h=rows[0].map(x=>x.toLowerCase());
+  if(h.some(x=>/undian|giliran|^no|bil|nama|pasukan|sekolah|negeri/.test(x))){
+    iU=h.findIndex(x=>/undian|giliran|^no/.test(x));if(iU<0)iU=h.findIndex(x=>/bil/.test(x));
+    iN=h.findIndex(x=>/nama/.test(x));iP=h.findIndex(x=>/pasukan|sekolah|negeri|kontinjen|daerah/.test(x));mula=1;
+  }else{
+    const r0=rows[0];
+    if(/^\d+$/.test(r0[0])){iU=0;iN=1;iP=r0.length>2?2:-1;}else{iN=0;iP=r0.length>1?1:-1;}
+  }
+  if(iN<0)iN=iU===0?1:0;
+  return rows.slice(mula).map((r,i)=>({undian:iU>=0&&r[iU]?r[iU].replace(/\D/g,'')||String(i+1):String(i+1),nama:r[iN]||'',pasukan:iP>=0?(r[iP]||''):''}))
+    .filter(x=>x.nama);
+}
+function bacaFail(file){
+  return new Promise(res=>{
+    const r=new FileReader();
+    r.onload=()=>{let t=r.result;if(t.includes('\uFFFD')){const r2=new FileReader();r2.onload=()=>res(r2.result);r2.readAsText(file,'windows-1252');}else res(t);};
+    r.readAsText(file,'utf-8');
+  });
+}
+
+
+/* ======================= PANGKALAN DATA (FIREBASE) ======================= */
+function FirebaseDB(){
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const d=firebase.database(),a=firebase.auth();
+  return{
+    init:async()=>{if(!a.currentUser)await a.signInAnonymously();return a.currentUser.uid;},
+    on:(p,cb)=>{const r=d.ref(p);const f=r.on('value',s=>cb(s.val()));return()=>r.off('value',f);},
+    get:async p=>(await d.ref(p).get()).val(),
+    set:(p,v)=>d.ref(p).set(v),
+    update:(p,v)=>d.ref(p).update(v),
+    remove:p=>d.ref(p).remove(),
+    connected:cb=>d.ref('.info/connected').on('value',s=>cb(!!s.val()))
+  };
+}
+const DB=window.MOCK_DB||((typeof firebase!=='undefined'&&FIREBASE_CONFIG.apiKey)?FirebaseDB():null);
+const uidBaru=()=>Math.random().toString(36).slice(2,10);
+function salahMsg(e){const m=String(e&&e.message||e);return /permission/i.test(m)?'Tiada kebenaran (PIN salah / sesi tamat / keputusan dikunci).':m;}
+
+/* ======================= STATE (MASA NYATA) ======================= */
+let ST={meta:null,kat:null},LIHAT='',TAB='live',UID='',LOGGED=false,TENDANG=false,SEDIA=null,ONLINE=false,LOGIN_UI='';
+let unsubKat=null,katDipantau=null;
+function normKat(k,id){
+  if(!k)return null;k.id=id;if(k.jenis&&!BORANG[k.jenis])pastiBorang(k.jenis);
+  k.peserta=k.peserta?Object.keys(k.peserta).map(pid=>Object.assign({id:pid},k.peserta[pid])):[];
+  k.markah=k.markah||{};k.tolak=k.tolak||{};k.rekodMasa=k.rekodMasa||{};
+  k.masa=k.masa||{sasaran:120};k.masa.tier=k.masa.tier?Object.values(k.masa.tier):[];
+  k.keputusan=k.keputusan?Object.values(k.keputusan).map(r=>Object.assign({},r,{j:r.j?Array.from({length:k.bilJuri||3},(_,i)=>r.j[i]==null?null:r.j[i]):[]})):null;
+  k.semasa=k.semasa||'';k.bilJuri=k.bilJuri||3;return k;
+}
+function normMeta(m){m=Object.assign({},m||{});Object.values(m.senarai||{}).forEach(x=>{if(x&&x.jenis&&!BORANG[x.jenis])pastiBorang(x.jenis);});m.senarai=m.senarai?Object.keys(m.senarai).map(id=>Object.assign({id},m.senarai[id])).sort((a,b)=>(a.t||0)-(b.t||0)):[];m.aktif=m.aktif||'';return m;}
+function pantau(){
+  DB.on('pub/meta',m=>{ST.meta=normMeta(m);
+    let id=VIEW==='kp'?(LIHAT||ST.meta.aktif):ST.meta.aktif;
+    if(id&&!ST.meta.senarai.some(x=>x.id===id))id=ST.meta.aktif;
+    pantauKat(id);render(true);});
+}
+function pantauKat(id){
+  id=id||'';if(id===katDipantau)return;katDipantau=id;
+  if(unsubKat)unsubKat();unsubKat=null;ST.kat=null;
+  if(!id){render(true);return;}
+  unsubKat=DB.on('pub/kat/'+id,k=>{ST.kat=normKat(k,id);if(VIEW==='kp'&&!LIHAT)LIHAT=id;render(true);});
+}
+function seterusnya(k,dariId){
+  const s=susunUndian(k.peserta);const i=s.findIndex(x=>x.id===dariId);
+  for(let n=i+1;n<s.length;n++)if(!s[n].ud)return s[n].id;return '';
+}
+/* Semua tindakan KP/DJ ditulis terus ke Firebase */
+async function kp(op,p){
+  const k=ST.kat;if(!k)return;const base='pub/kat/'+k.id;
+  if(k.sah)return toast('Keputusan telah DISAHKAN. Tidak boleh diubah.',true);
+  try{switch(op){
+    case 'tetapan':{const jn=p.jurus?jenisDgnJurus(k.jenis,p.jurus):k.jenis;if(jn!==k.jenis&&Object.keys(k.markah).length){toast('Tidak boleh tukar bilangan jurus: markah sudah ada.',true);return;}
+      await DB.update(base,{jenis:jn,nama:p.nama,acara:p.acara,tarikh:p.tarikh||'',masa:p.masa,kaedah:p.kaedah,bilJuri:p.bilJuri,buangHL:!!p.buangHL,skala10:!!p.skala10});
+      await DB.update('pub/meta/senarai/'+k.id,{nama:p.nama,acara:p.acara,jenis:jn});break;}
+    case 'peserta':{const lama={};k.peserta.forEach(x=>lama[x.undian+'|'+x.nama]=x);const o={};
+      p.forEach(x=>{const l=lama[x.undian+'|'+x.nama];o[l?l.id:uidBaru()]={undian:x.undian,nama:x.nama,pasukan:x.pasukan||'',ud:l?!!l.ud:false};});
+      await DB.set(base+'/peserta',o);break;}
+    case 'semasa':await DB.set(base+'/semasa',p||'');break;
+    case 'ud':{const up={};up['peserta/'+p.id+'/ud']=!!p.ud;up['peserta/'+p.id+'/dq']=!!(p.ud&&p.dq);up['peserta/'+p.id+'/dqSebab']=p.ud&&p.dq?(p.sebab||''):null;if(p.ud&&k.semasa===p.id)up.semasa=seterusnya(k,p.id);await DB.update(base,up);break;}
+    case 'masa':await DB.set(base+'/rekodMasa/'+p.id,p.saat);break;
+    case 'tolak':await DB.set(base+'/tolak/'+p.id,p.senarai);break;
+    case 'papar':await DB.set(base+'/paparMarkah',!!p);break;
+    case 'resetJuri':await DB.remove(base+'/markah/'+p.id+'/'+p.j);break;
+    case 'sah':await DB.update(base,{keputusan:p.keputusan,sah:{oleh:p.oleh,dj:p.dj,masa:Date.now()}});hantarSheet(k,p);break;
+  }}catch(e){toast('Gagal: '+salahMsg(e),true);throw e;}
+}
+async function setMeta(kunci,nilai){try{await DB.set('pub/meta/'+kunci,nilai);}catch(e){toast('Gagal: '+salahMsg(e),true);}}
+async function hantarSheet(k,p){
+  if(!SHEET_URL)return;
+  try{await fetch(SHEET_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({kejohanan:(ST.meta||{}).kejohanan||'',kategori:k.nama,jenis:namaBorang(k.jenis),acara:k.acara,tarikh:k.tarikh||'',bilJuri:k.bilJuri,oleh:p.oleh,dj:p.dj,baris:p.keputusan})});
+    toast('Salinan dihantar ke Google Sheet');}catch(e){toast('Salinan ke Google Sheet gagal (data tetap selamat di Firebase)',true);}
+}
+
+/* ======================= RENDER ======================= */
+function render(dariPoll){
+  if(!DB)return renderSetup();
+  if(ROLE&&!LOGGED){renderLogin();return;}
+  LOGIN_UI='';
+  if(VIEW==='kp')return renderKP(dariPoll);
+  if(VIEW==='juri')return renderJuri();
+  if(VIEW==='penonton')return renderPenonton();
+  renderUtama();
+}
+
+function renderUtama(){
+  const u=APP_URL;
+  const L=(v,t,d)=>`<a class="neu card" style="display:block;text-decoration:none;color:inherit" href="${u}?${v}"><h2>${t}</h2><div class="muted">${d}</div></a>`;
+  $('#app').innerHTML=`<div class="wrap" style="max-width:700px">
+   <div class="neu topbar"><div class="logo">S</div><h1 class="grow" style="margin:0">PEMARKAHAN SENI SILAT KPM</h1>${netBadge()}${temaBtn()}</div>
+   ${L('v=kp','KETUA PERTANDINGAN / DEWAN JURI','Urus kategori, undian, giliran, masa, penolakan & keputusan')}
+   ${[1,2,3,4,5].map(n=>L('v=juri&j='+n,'JURI '+n,n>3?'Peranti juri '+n+' (jika guna 5 juri)':'Peranti juri '+n)).join('')}
+   ${L('v=penonton','PAPARAN PENONTON','Untuk projektor / TV')}</div>`;
+}
+
+/* ---------- KP ---------- */
+function renderKP(dariPoll){
+  const a=document.activeElement;
+  const km=$('#kpmain');const sama=km&&ST.kat&&km.dataset.kat===ST.kat.id;
+  if(dariPoll&&sama&&(TAB==='masa'||TAB==='senarai'||(a&&a.dataset&&a.dataset.keep)))return renderLiveOnly();
+  const m=ST.meta||{senarai:[]};const k=ST.kat;
+  const u=APP_URL;
+  $('#app').innerHTML=`<div class="wrap">
+  <div class="neu topbar"><div class="logo">KP</div>
+    <div class="grow"><h1 style="margin:0">KETUA PERTANDINGAN / DEWAN JURI</h1>
+      <input data-keep="1" style="margin-top:6px;width:100%;max-width:520px;padding:7px 12px;font-size:13px" placeholder="NAMA KEJOHANAN (cth: KEJOHANAN SILAT SEKOLAH-SEKOLAH NEGERI 2026)" value="${esc(m.kejohanan||'')}" onchange="setMeta('kejohanan',this.value)"></div>
+    <button class="btn sm" onclick="pautan()">🔗 PAUTAN & POSTER QR</button><button class="btn sm" onclick="urusData()">🗂 DATA</button><button class="btn sm ${m.rehat?'gold':''}" onclick="togolRehat()">${m.rehat?'▶ SAMBUNG':'⏸ REHAT'}</button><button class="btn sm" onclick="tetapPin()">🔑 PIN</button><button class="btn sm" onclick="keluar()">⎋ KELUAR</button>${netBadge()}${temaBtn()}</div>
+  <div class="grid2">
+   <div>
+    <div class="neu card"><h2>KATEGORI</h2>
+     ${m.senarai.map(x=>`<div class="neu katitem ${k&&k.id===x.id?'on':''}" onclick="pilihKat('${x.id}')">
+        <b class="up">${esc(x.nama)}</b><span class="muted" style="font-size:12px">${esc(namaBorang(x.jenis))} ${x.acara?'• '+esc(x.acara):''}</span>
+        ${m.aktif===x.id?' <span class="badge b-gold">AKTIF</span>':''}</div>`).join('')||'<p class="muted">Belum ada kategori.</p>'}
+     <button class="btn pri" style="width:100%;margin-top:6px" onclick="borangKat()">+ KATEGORI BARU</button>
+    </div>
+   </div>
+   <div id="kpmain" data-kat="${k?k.id:''}">${m.rehat?`<div class="dqban" style="background:var(--accent2);color:#1b1b1b;margin:0 0 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:20px;font-weight:900">⏸ SEDANG REHAT</span><span class="grow">${esc(m.rehatMsg||'')} · skrin juri & penonton papar mesej rehat</span><button class="btn sm ok" onclick="togolRehat()">▶ SAMBUNG PERTANDINGAN</button></div>`:''}${k?kpMain(k,m):'<div class="neu card"><h2>Mula dengan tambah kategori baru.</h2></div>'}</div>
+  </div></div>`;
+  if(k&&TAB==='senarai')initDrop();
+}
+function renderLiveOnly(){const el=$('#live');if(el&&ST.kat)el.innerHTML=liveHTML(ST.kat);}
+function pautan(){
+  const u=APP_URL;const nJ=ST.kat?ST.kat.bilJuri||3:3;
+  const L=(v,t,ic)=>`<a class="plink neu" href="${u}?${v}" target="_blank" rel="noopener">${ic}<span class="grow">${t}</span><span class="muted">BUKA ↗</span></a>`;
+  modal(`<h2>PAUTAN PERANTI</h2><p class="muted">Klik untuk buka di tab baharu.</p>
+   ${L('v=penonton','PAPARAN PENONTON (PROJEKTOR / TV)','📺')}
+   ${Array.from({length:5},(_,i)=>L('v=juri&j='+(i+1),'JURI '+(i+1)+(i>=nJ?' <span class="muted">(tidak digunakan kategori ini)</span>':''),'⚖')).join('')}
+   <button class="btn gold" style="width:100%;margin-top:6px" onclick="posterQR()">🖨 POSTER QR JURI (UNTUK DICETAK)</button>`);
+}
+function qrSVG(teks){
+  if(typeof qrcode==='undefined')return '<p>QR tidak dapat dijana (tiada internet).</p>';
+  const q=qrcode(0,'M');q.addData(teks);q.make();return q.createSvgTag({cellSize:8,margin:2,scalable:true});
+}
+function posterHTML(n){
+  const m=ST.meta||{},k=ST.kat;const url=APP_URL+'?v=juri&j='+n;
+  return `<div class="poster"><div class="bar"></div><div class="pk">${esc(m.kejohanan||'PERTANDINGAN SENI SILAT')}</div>
+   <div class="pk" style="color:#555">SISTEM PEMARKAHAN DIGITAL SENI SILAT</div>
+   <div class="pj">JURI ${n}</div><div class="pq">${qrSVG(url)}</div>
+   <ol><li>IMBAS KOD QR INI</li><li>MASUKKAN PIN JURI ${n}</li><li>NILAI SETIAP ITEM SEHINGGA ✓ HIJAU, TEKAN HANTAR</li></ol>
+   <div class="pu">${esc(url)}</div><div class="pk" style="color:#555;font-size:10px">PIN HANYA BOLEH DIGUNAKAN PADA SATU PERANTI. PERANTI LAMA AKAN LOG KELUAR SECARA AUTOMATIK.</div><div class="bar"></div></div>`;
+}
+function posterQR(){
+  const nJ=ST.kat?ST.kat.bilJuri||3:3;
+  modal(`<h2>POSTER QR JURI</h2><p class="muted">Setiap juri satu halaman A4. Tampal di meja juri.</p>
+   <div class="row"><label style="margin:0">BILANGAN</label><select id="pBil" onchange="$('#pPrev').innerHTML=Array.from({length:+this.value},(_,i)=>posterHTML(i+1)).join('')"><option value="3" ${nJ==3?'selected':''}>JURI 1–3</option><option value="5" ${nJ==5?'selected':''}>JURI 1–5</option></select></div>
+   <div class="pgrid" id="pPrev">${Array.from({length:nJ},(_,i)=>posterHTML(i+1)).join('')}</div>
+   <button class="btn gold" style="width:100%" onclick="cetakPoster(+$('#pBil').value)">🖨 CETAK POSTER</button>`);
+  const d=$('#modal>div');if(d)d.style.width='min(900px,100%)';
+}
+function cetakPoster(n){
+  $('#cetak').innerHTML=Array.from({length:n},(_,i)=>posterHTML(i+1)).join('');
+  let st=document.getElementById('pgsz');if(!st){st=document.createElement('style');st.id='pgsz';document.head.appendChild(st);}
+  st.textContent='@page{size:A4 portrait;margin:10mm}';
+  window.print();setTimeout(()=>{st.textContent='';},1000);
+}
+function modal(html){
+  let d=$('#modal');if(!d){d=document.createElement('div');d.id='modal';document.body.appendChild(d);}
+  d.className='noprint';d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.35);display:grid;place-items:center;z-index:50;padding:16px';
+  d.innerHTML=`<div class="neu card" style="width:min(560px,100%);max-height:90vh;overflow:auto">${html}<div class="row" style="justify-content:flex-end;margin-top:12px"><button class="btn" onclick="tutupModal()">TUTUP</button></div></div>`;
+}
+function tutupModal(){const d=$('#modal');if(d)d.remove();}
+async function pilihKat(id){LIHAT=id;TAB='live';pantauKat(id);await setMeta('aktif',id);render();}
+function lihatKat(id){LIHAT=id;TAB='live';pantauKat(id);render();}
+function borangKat(){
+  modal(`<h2>KATEGORI BARU</h2>
+   <label>Nama paparan</label><input id="nkNama" style="width:100%" placeholder="cth: SENI TARI SILAT PUTERA">
+   <div class="row" style="margin-top:12px">
+    <div class="grow"><label>Jenis borang</label><select id="nkJenis" style="width:100%" onchange="tukarJenis(this.value)"><optgroup label="FORMAT KPM (SENI SILAT)">${Object.keys(BORANG).filter(k=>BORANG[k].format==='KPM').map(k=>`<option value="${k}">${BORANG[k].nama}</option>`).join('')}</optgroup><optgroup label="FORMAT PESAKA (SILAT SENI)">${Object.keys(BORANG).filter(k=>BORANG[k].format==='PESAKA'&&!BORANG[k].sembunyi).map(k=>`<option value="${k}">${BORANG[k].nama}</option>`).join('')}</optgroup></select></div>
+    <div><label>Acara</label><select id="nkAcara" onchange="$('#nkMasa').value=mmss(masaLalai($('#nkJenis').value,this.value));segarJurus()">${ACARA.map(a=>`<option>${a}</option>`).join('')}</select></div></div>
+   <div id="nkJBox" style="margin-top:12px;display:none"><label>Jurus yang dinilai</label><select id="nkJurus" style="width:100%"></select></div>
+   <div class="row" style="margin-top:12px"><div><label>Masa persembahan (m:ss)</label><input id="nkMasa" value="2:00" style="width:120px"></div>
+    <div class="grow"><label>Tarikh</label><input id="nkTarikh" type="date" style="width:100%"></div></div>
+   <div class="row" style="margin-top:12px"><div><label>Bilangan juri</label><select id="nkBil"><option value="3">3 JURI</option><option value="5">5 JURI</option></select></div>
+   <div class="grow"><label>Cara kira markah</label><select id="nkKaedah" style="width:100%"><option value="jumlah">JUMLAH SEMUA JURI − penolakan</option><option value="purata">PURATA SEMUA JURI − penolakan</option><option value="median">MEDIAN JURI − penolakan</option></select></div></div>
+   <label style="display:flex;gap:8px;align-items:center;margin-top:12px;cursor:pointer"><input type="checkbox" id="nkS10" style="width:20px;height:20px"> PAPAR MARKAH SKALA 10 (cth 9.15)</label>
+   <label style="display:flex;gap:8px;align-items:center;margin-top:12px;cursor:pointer"><input type="checkbox" id="nkHL" style="width:20px;height:20px"> 5 JURI: BUANG MARKAH TERTINGGI & TERENDAH</label>
+   <button class="btn pri" style="margin-top:16px;width:100%" onclick="buatKat()">CIPTA</button>`);
+}
+function segarJurus(){const j=$('#nkJenis').value,T=bilJurus(j);$('#nkJBox').style.display=T?'block':'none';
+  if(T)$('#nkJurus').innerHTML=jurusOpsyen(j,jurusLalai(j,$('#nkAcara').value));}
+function tukarJenis(j){
+  const B=BORANG[j];
+  $('#nkAcara').innerHTML=B.acara.map(a=>`<option>${a}</option>`).join('');
+  $('#nkMasa').value=mmss(masaLalai(j,$('#nkAcara').value));segarJurus();
+  $('#nkKaedah').value=B.kaedah||'jumlah';$('#nkS10').checked=B.format==='PESAKA';
+}
+async function buatKat(){
+  const d={nama:$('#nkNama').value.trim()||BORANG[$('#nkJenis').value].nama,jenis:$('#nkJenis').value,acara:$('#nkAcara').value,sasaran:bacaMasa($('#nkMasa').value)||120,tarikh:$('#nkTarikh').value,kaedah:$('#nkKaedah').value,bilJuri:+$('#nkBil').value,buangHL:$('#nkHL').checked,skala10:$('#nkS10').checked};
+  d.jenis=bilJurus(d.jenis)?jenisDgnJurus(d.jenis,+$('#nkJurus').value):d.jenis;
+  let id;try{id=await ciptaKatData(d,true);}catch(e){return toast('Gagal: '+salahMsg(e),true);}
+  tutupModal();LIHAT=id;TAB='senarai';pantauKat(id);render();
+}
+/* Cipta kategori (digunakan oleh borang & import pukal) */
+async function ciptaKatData(d,aktifkan,pesertaObj){
+  const id=uidBaru();
+  const kat={nama:d.nama,jenis:d.jenis,acara:d.acara,tarikh:d.tarikh||'',bilJuri:d.bilJuri||3,buangHL:!!d.buangHL,skala10:!!d.skala10,kaedah:d.kaedah||'jumlah',
+    peserta:pesertaObj||null,
+    masa:Object.assign(BORANG[d.jenis].masa?JSON.parse(JSON.stringify(BORANG[d.jenis].masa)):{toleransi:0,tolakLebih:false,tier:[{dari:1,hingga:10,tolak:5},{dari:11,hingga:20,tolak:10},{dari:21,hingga:9999,tolak:15}]},{sasaran:d.sasaran}),semasa:'',paparMarkah:false,dicipta:Date.now()};
+  await DB.set('pub/kat/'+id,kat);const up={};if(aktifkan)up.aktif=id;up['senarai/'+id]={nama:d.nama,jenis:d.jenis,acara:d.acara,t:Date.now()};await DB.update('pub/meta',up);
+  return id;
+}
+function kpMain(k,m){
+  const T=(id,t)=>`<button class="btn ${TAB===id?'on':''}" onclick="TAB='${id}';render()">${t}</button>`;
+  let body='';
+  if(TAB==='live')body=`<div id="live">${liveHTML(k)}</div>`;
+  if(TAB==='senarai')body=senaraiHTML(k);
+  if(TAB==='masa')body=masaHTML(k);
+  if(TAB==='keputusan')body=keputusanHTML(k,m);
+  return `<div class="neu card"><div class="row"><div class="grow"><h2 class="up" style="margin:0">${esc(k.nama)}</h2>
+     <span class="muted">${namaBorang(k.jenis)} • ${esc(k.acara)} • Masa ${mmss(k.masa.sasaran)} • ${k.bilJuri||3} JURI • ${k.kaedah==='purata'?'PURATA':k.kaedah==='median'?'MEDIAN':'JUMLAH'}${k.skala10?' · SKALA 10':''}${k.buangHL&&k.bilJuri==5?' (BUANG TINGGI/RENDAH)':''}</span></div>
+     ${k.sah?'<span class="badge b-ok">DISAHKAN</span>':''}
+     ${m.aktif!==k.id?`<button class="btn sm gold" onclick="pilihKat('${k.id}')">JADIKAN AKTIF</button>`:''}
+     ${k.sah?'':`<button class="btn sm bad" onclick="if(confirm('Padam kategori ini?'))padamKat('${k.id}')">PADAM</button>`}</div></div>
+   <div class="tabs">${T('live','▶ PERTANDINGAN')}${T('senarai','SENARAI UNDIAN')}${T('masa','TETAPAN MASA')}${T('keputusan','KEPUTUSAN')}</div>${body}`;
+}
+
+async function padamKat(id){
+  try{await DB.remove('pub/kat/'+id);const m=ST.meta;const up={};up['senarai/'+id]=null;
+    if(m.aktif===id){const lain=m.senarai.find(x=>x.id!==id);up.aktif=lain?lain.id:'';}
+    await DB.update('pub/meta',up);LIHAT='';katDipantau=null;}catch(e){toast('Gagal: '+salahMsg(e),true);}
+}
+/* --- Catatan juri & ubah markah oleh KP/DJ --- */
+function catatanHTML(k,pid){
+  const m=k.markah[pid]||{};const l=Array.from({length:k.bilJuri||3},(_,i)=>i+1).filter(j=>m[j]&&m[j].c);
+  if(!l.length)return '';
+  return `<div class="neu-in" style="margin-top:12px;padding:10px 14px;font-size:13px"><b class="muted" style="font-size:11px">📝 CATATAN JURI</b>${l.map(j=>`<div style="margin-top:4px"><b>J${j}:</b> ${esc(m[j].c)}</div>`).join('')}</div>`;
+}
+function editMarkah(pid,j){
+  const k=ST.kat;if(!k||k.sah)return;const p=k.peserta.find(x=>x.id===pid);if(!p)return;
+  const nJ=k.bilJuri||3;const m=(k.markah[pid]||{})[j];const v=m?m.v:{};const B=BORANG[k.jenis];
+  const saat=k.rekodMasa[pid];
+  modal(`<h2>✎ UBAH MARKAH / MASA</h2>
+   <p class="up" style="margin:0 0 10px"><b>UNDIAN ${esc(p.undian)} — ${esc(p.nama)}</b> <span class="muted">${esc(p.pasukan)}</span></p>
+   <div class="row" style="gap:8px;margin-bottom:10px">${Array.from({length:nJ},(_,i)=>i+1).map(n=>{const ada=(k.markah[pid]||{})[n];
+     return `<button class="btn sm ${n===j?'on':''}" onclick="editMarkah('${pid}',${n})"><span class="${ada?'jok':'jx'}">${ada?'✓':'✗'}</span> JURI ${n}</button>`;}).join('')}</div>
+   ${m?(m.ed?'<p class="muted" style="margin:0 0 8px">Markah ini pernah diubah oleh KP/DJ.</p>':''):`<p style="color:var(--warn);font-weight:700;margin:0 0 8px">Juri ${j} belum hantar. KP/DJ boleh isi bagi pihak juri.</p>`}
+   <div style="overflow-x:auto"><table><tr><th>UNSUR</th><th class="num">MAK</th><th class="num">M</th><th class="num">NILAI</th></tr>
+   ${B.sek.map(sk=>`<tr><th colspan="4" class="up" style="color:var(--accent)">${sk.k}. ${esc(sk.n)}</th></tr>`+sk.item.map(it=>{const cur=v[it.k]!=null?v[it.k]:it.m;
+     return `<tr><td style="font-size:13px">${esc(it.n)}</td><td class="num">${it.mak||'-'}</td><td class="num">${it.kira?'SALAH':it.julat?it.julat.join('–'):it.mak?it.m:'-'}</td>
+     <td class="num"><select class="eNil" data-k="${it.k}" style="padding:6px 10px" onchange="eJum()">${it.adj.map(a=>{const x=it.m+a;return `<option value="${x}" ${x===cur?'selected':''}>${it.kira?(x?x+' salah':'0'):it.julat?fx(x):fx(x)+' ('+(a>0?'+':'')+fx(a)+')'}</option>`;}).join('')}</select></td></tr>`;}).join('')).join('')}
+   </table></div>
+   <p style="font-size:18px;font-weight:900;margin:10px 0">JUMLAH JURI ${j}: <span id="eJum">—</span></p>
+   <label>Catatan juri</label><textarea id="eCat" maxlength="300" style="min-height:70px">${esc(m&&m.c||'')}</textarea>
+   <label style="margin-top:12px">Masa persembahan (m:ss)</label><input id="eMasa" style="width:130px" value="${saat!=null?mmss(saat):''}" placeholder="cth 1:58">
+   <button class="btn ok" style="width:100%;margin-top:14px" onclick="simpanEdit('${pid}',${j})">💾 SIMPAN PERUBAHAN</button>`);
+  const d=$('#modal>div');if(d)d.style.width='min(640px,100%)';eJum();
+}
+function eJum(){const v={};document.querySelectorAll('.eNil').forEach(s=>v[s.dataset.k]=+s.value);const el=$('#eJum');if(el)el.textContent=fx(skorJuri(ST.kat.jenis,v).jum);}
+async function simpanEdit(pid,j){
+  const k=ST.kat;const v={};document.querySelectorAll('.eNil').forEach(s=>v[s.dataset.k]=+s.value);
+  const c=$('#eCat').value.trim();const ms=$('#eMasa').value.trim();
+  try{
+    await DB.set('pub/kat/'+k.id+'/markah/'+pid+'/'+j,{v,c,t:Date.now(),ed:'KP'});
+    const baru=ms?bacaMasa(ms):null;if(baru!==(k.rekodMasa[pid]??null))await DB.set('pub/kat/'+k.id+'/rekodMasa/'+pid,baru);
+    tutupModal();toast('Markah Juri '+j+' & masa disimpan');
+  }catch(e){toast('Gagal: '+salahMsg(e),true);}
+}
+async function sahDQ(pid){const r=kira(ST.kat).rows.find(x=>x.id===pid);if(!confirm('Sahkan DISKUALIFIKASI?'))return;
+  await kp('ud',{id:pid,ud:true,dq:true,sebab:r.dqCadangan});toast('Diskualifikasi disahkan');}
+async function tolakDQ(pid){const r=kira(ST.kat).rows.find(x=>x.id===pid);if(!confirm('Tolak cadangan DQ? Juri berkenaan perlu isi markah semula.'))return;
+  const up={};r.jdq.forEach(x=>up[x.j]=null);try{await DB.update('pub/kat/'+ST.kat.id+'/markah/'+pid,up);toast('Cadangan ditolak. Juri isi markah semula.');}catch(e){toast('Gagal: '+salahMsg(e),true);}}
+/* ================= URUS DATA: IMPORT PUKAL, SALINAN, REHAT ================= */
+const KOD_JENIS={'SENI TARI':'I','TARI':'I','SENI TEMPUR':'II','TEMPUR':'II','SILAT ASLI':'III','SENI SILAT ASLI':'III','ASLI':'III','SENI JURUS':'IV','JURUS':'IV',
+  'SOLO KREATIF':'PS','SOLO':'PS','GANDA':'PG','REGU':'PR','JURUS WAJIB':'PR','TUNGGAL':'PT','JURUS TUNGGAL':'PT','I':'I','II':'II','III':'III','IV':'IV'};
+const kodJenis=t=>KOD_JENIS[String(t||'').toUpperCase().replace(/^KPM\s*|^PESAKA\s*/,'').replace(/^KATEGORI\s*/,'').trim()]||'';
+const CONTOH_PUKAL='KATEGORI,JENIS,ACARA,UNDIAN,NAMA,PASUKAN\nSENI TARI PUTERA,SENI TARI,LSM,1,Ahmad Faiz,SMK Bukit Baru\nSENI TARI PUTERA,SENI TARI,LSM,2,\'Abdul Rahman,SMK Ayer Keroh\nTUNGGAL DINI PUTRA,TUNGGAL,DINI PUTRA,1,Irfan Hakimi,Silat Lincah\nGANDA REMAJA PUTRI,GANDA,REMAJA PUTRI,1,Nur Aina & Siti Hajar,Seni Gayong';
+let PUKAL=null;
+function urusData(){
+  let auto=null;try{auto=JSON.parse(localStorage.getItem('salinanAuto')||'null');}catch(e){}
+  modal(`<h2>🗂 URUS DATA</h2>
+   <div class="neu-in" style="padding:14px;margin-bottom:12px"><h3>1. IMPORT PUKAL (SEBELUM PERTANDINGAN)</h3>
+     <p class="muted" style="font-size:13px;margin:0 0 8px">Satu fail CSV untuk semua kategori. Lajur: KATEGORI, JENIS, ACARA, UNDIAN, NAMA, PASUKAN. Kategori dicipta automatik dengan tetapan lalai.</p>
+     <div class="drop" id="dropPukal" onclick="$('#failPukal').click()">📄 <b>SERET FAIL CSV</b> atau klik untuk pilih</div>
+     <input type="file" id="failPukal" accept=".csv,.txt" style="display:none" onchange="bacaPukal(this.files[0])">
+     <details><summary class="muted" style="cursor:pointer;font-size:13px">Lihat contoh format & nama JENIS</summary>
+       <pre style="font-size:11px;white-space:pre-wrap">${esc(CONTOH_PUKAL)}</pre>
+       <p class="muted" style="font-size:12px">JENIS: SENI TARI · SENI TEMPUR · SILAT ASLI · SENI JURUS · SOLO KREATIF · GANDA · REGU · TUNGGAL</p>
+       <button class="btn sm" onclick="muatTurun('contoh-import-pukal.csv',CONTOH_PUKAL,'text/csv')">⬇ MUAT TURUN CONTOH</button></details>
+     <div id="pukalPrev"></div></div>
+   <div class="neu-in" style="padding:14px;margin-bottom:12px"><h3>2. SIMPAN SALINAN</h3>
+     <p class="muted" style="font-size:13px;margin:0 0 8px">Semua kategori, senarai undian, markah, masa, penolakan & keputusan dalam satu fail. Simpan dalam pendrive / Google Drive.</p>
+     <button class="btn ok" onclick="simpanSalinan()">💾 MUAT TURUN SALINAN</button></div>
+   <div class="neu-in" style="padding:14px"><h3>3. PULIH DARI SALINAN</h3>
+     <p class="muted" style="font-size:13px;margin:0 0 8px">Buka fail salinan (.json). Kategori dalam fail akan dimasukkan semula. Kategori yang sudah DISAHKAN tidak akan ditimpa.</p>
+     <button class="btn" onclick="$('#failSalin').click()">📂 PILIH FAIL SALINAN</button>
+     <input type="file" id="failSalin" accept=".json" style="display:none" onchange="pulihSalinan(this.files[0])">
+     ${auto?`<p style="font-size:13px;margin:10px 0 0">Salinan automatik peranti ini: <b>${new Date(auto.dicipta).toLocaleString('ms-MY')}</b> (${Object.keys(auto.pub.kat||{}).length} kategori) <button class="btn sm" onclick="pulihData(JSON.parse(localStorage.getItem('salinanAuto')))">PULIH</button></p>`:''}</div>`);
+  const d=$('#modal>div');if(d)d.style.width='min(720px,100%)';
+  const dp=$('#dropPukal');['dragenter','dragover'].forEach(e=>dp.addEventListener(e,ev=>{ev.preventDefault();dp.classList.add('over');}));
+  ['dragleave','drop'].forEach(e=>dp.addEventListener(e,ev=>{ev.preventDefault();dp.classList.remove('over');}));dp.addEventListener('drop',ev=>bacaPukal(ev.dataTransfer.files[0]));
+}
+function muatTurun(nama,isi,jenis){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([isi],{type:jenis}));a.download=nama;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},500);}
+async function bacaPukal(f){
+  if(!f)return;const rows=parseCSV(await bacaFail(f));if(rows.length<2)return toast('Fail kosong',true);
+  const h=rows[0].map(x=>x.toUpperCase());const ix=n=>h.findIndex(x=>x.includes(n));
+  const iK=ix('KATEGORI'),iJ=ix('JENIS'),iA=ix('ACARA'),iU=ix('UNDIAN'),iN=ix('NAMA'),iP=Math.max(ix('PASUKAN'),ix('SEKOLAH'));
+  if(iK<0||iJ<0||iN<0)return toast('Lajur KATEGORI, JENIS dan NAMA wajib ada',true);
+  const g={},salah=[];
+  rows.slice(1).forEach((r,n)=>{const nama=(r[iK]||'').trim();if(!nama||!(r[iN]||'').trim())return;const j=kodJenis(r[iJ]);
+    if(!j){salah.push('Baris '+(n+2)+': JENIS "'+r[iJ]+'" tidak dikenali');return;}
+    const key=nama.toUpperCase();g[key]=g[key]||{nama:key,jenis:j,acara:(iA>=0?r[iA]:'').trim().toUpperCase(),peserta:[]};
+    g[key].peserta.push({undian:(iU>=0&&r[iU]?r[iU].replace(/\D/g,''):'')||String(g[key].peserta.length+1),nama:r[iN].trim(),pasukan:iP>=0?(r[iP]||'').trim():''});});
+  PUKAL=Object.values(g);const ada=new Set((ST.meta.senarai||[]).map(x=>x.nama.toUpperCase()));
+  $('#pukalPrev').innerHTML=`<table style="font-size:13px;margin-top:10px"><tr><th>KATEGORI</th><th>BORANG</th><th>ACARA</th><th class="num">PESERTA</th><th></th></tr>
+    ${PUKAL.map(x=>`<tr><td class="up"><b>${esc(x.nama)}</b></td><td>${esc(namaBorang(x.jenis))}</td><td>${esc(x.acara)}</td><td class="num">${x.peserta.length}</td><td>${ada.has(x.nama)?'<span class="badge b-wait">SUDAH ADA · DILANGKAU</span>':'<span class="badge b-ok">BARU</span>'}</td></tr>`).join('')}</table>
+    ${salah.length?`<p style="color:var(--bad);font-size:12px">${salah.map(esc).join('<br>')}</p>`:''}
+    <button class="btn pri" style="width:100%;margin-top:10px" onclick="importPukal()">✔ CIPTA ${PUKAL.filter(x=>!ada.has(x.nama)).length} KATEGORI</button>`;
+}
+async function importPukal(){
+  const ada=new Set((ST.meta.senarai||[]).map(x=>x.nama.toUpperCase()));let n=0;
+  for(const x of PUKAL){if(ada.has(x.nama))continue;const B=BORANG[x.jenis];const acara=x.acara||B.acara[0];
+    const jenis=jenisSebenar(x.jenis,acara);const o={};x.peserta.forEach(p=>o[uidBaru()]=p);
+    try{await ciptaKatData({nama:x.nama,jenis,acara,sasaran:masaLalai(x.jenis,acara),kaedah:B.kaedah||'jumlah',bilJuri:3,skala10:B.format==='PESAKA'},false,o);n++;}
+    catch(e){toast('Gagal '+x.nama+': '+salahMsg(e),true);}}
+  PUKAL=null;tutupModal();toast(n+' kategori dicipta. Pilih kategori di senarai kiri.');
+}
+async function ambilSemua(){const pub=await DB.get('pub')||{};return{aplikasi:'PEMARKAHAN-SILAT',versi:1,dicipta:Date.now(),pub};}
+async function simpanSalinan(){
+  try{const d=await ambilSemua();const nm=((ST.meta.kejohanan||'kejohanan').replace(/[^\w]+/g,'-').replace(/^-|-$/g,'')+'-'+new Date().toISOString().slice(0,16).replace(/[:T]/g,'')).toLowerCase();
+    muatTurun(nm+'.json',JSON.stringify(d,null,1),'application/json');toast('Salinan dimuat turun');}catch(e){toast('Gagal: '+salahMsg(e),true);}
+}
+async function pulihSalinan(f){if(!f)return;let d;try{d=JSON.parse(await bacaFail(f));}catch(e){return toast('Fail salinan tidak sah',true);}pulihData(d);}
+async function pulihData(d){
+  if(!d||d.aplikasi!=='PEMARKAHAN-SILAT'||!d.pub)return toast('Fail ini bukan salinan sistem pemarkahan',true);
+  const kat=d.pub.kat||{},sen=(d.pub.meta&&d.pub.meta.senarai)||{};
+  if(!confirm('Pulihkan '+Object.keys(kat).length+' kategori dari salinan '+new Date(d.dicipta).toLocaleString('ms-MY')+'?'))return;
+  let ok=0,langkau=0;
+  for(const id of Object.keys(kat)){
+    try{const kini=await DB.get('pub/kat/'+id);if(kini&&kini.sah){langkau++;continue;}
+      await DB.set('pub/kat/'+id,kat[id]);const up={};up['senarai/'+id]=sen[id]||{nama:kat[id].nama,jenis:kat[id].jenis,acara:kat[id].acara,t:Date.now()};await DB.update('pub/meta',up);ok++;}
+    catch(e){langkau++;}}
+  if(d.pub.meta&&d.pub.meta.kejohanan)await setMeta('kejohanan',d.pub.meta.kejohanan);
+  tutupModal();toast(ok+' kategori dipulihkan'+(langkau?' · '+langkau+' dilangkau (sudah disahkan)':''));
+}
+async function togolRehat(){
+  const m=ST.meta||{};if(m.rehat){await setMeta('rehat',null);toast('Pertandingan disambung');return;}
+  modal(`<h2>⏸ REHAT SEBENTAR</h2><p class="muted" style="margin-top:0">Skrin juri & penonton akan papar mesej ini. Data kekal tersimpan.</p>
+   <label>Mesej rehat (pilihan)</label><input id="rhMsg" style="width:100%" value="Pertandingan akan disambung sebentar lagi" onkeydown="if(event.key==='Enter')mulaRehat()">
+   <div class="row" style="gap:8px;margin-top:10px">${['Rehat 15 minit','Solat Zohor','Solat Asar','Makan tengah hari'].map(x=>`<button class="btn sm" onclick="$('#rhMsg').value='${x}'">${x}</button>`).join('')}</div>
+   <button class="btn gold" style="width:100%;margin-top:14px" onclick="mulaRehat()">⏸ MULA REHAT</button>`);
+  const i=$('#rhMsg');if(i){i.focus();i.select();}
+}
+async function mulaRehat(){const msg=$('#rhMsg').value.trim();tutupModal();
+  try{await DB.update('pub/meta',{rehatMsg:msg,rehat:true});toast('Mod rehat diaktifkan');}catch(e){toast('Gagal: '+salahMsg(e),true);}}
+/* Salinan automatik di peranti KP (setiap 2 minit) */
+setInterval(async()=>{if(VIEW!=='kp'||!LOGGED||!DB)return;try{const d=await ambilSemua();localStorage.setItem('salinanAuto',JSON.stringify(d));}catch(e){}},120000);
+/* --- Tab Pertandingan --- */
+let SW={mula:0,lalu:0,jalan:false,h:null};
+function liveHTML(k){
+  const {rows}=kira(k);const kunci=!!k.sah;
+  const cur=rows.find(r=>r.id===k.semasa);
+  const nJ=k.bilJuri||3;const juri=Array.from({length:nJ},(_,i)=>i+1).map(j=>{const ok=cur&&k.markah[cur.id]&&k.markah[cur.id][j];
+    return `<span class="chip neu-in ${ok&&!ok.dq?'done':'cwait'}" style="color:var(${ok&&!ok.dq?'--ok':'--bad'})">JURI ${j}: ${ok&&ok.dq?'⛔ DQ':ok?'✓ '+fx(cur.j[j-1]):'✗ BELUM'}${ok&&ok.ed?' <span class="muted" style="font-size:10px">(DIUBAH KP)</span>':''}${ok&&ok.c?' 📝':''} ${!kunci&&cur?`<a href="#" title="Ubah markah juri" style="color:var(--accent);font-size:13px;text-decoration:none" onclick="event.preventDefault();editMarkah('${cur.id}',${j})">✎</a>`:''} ${ok&&!kunci?`<a href="#" style="color:var(--muted);font-size:11px" onclick="event.preventDefault();if(confirm('Benarkan Juri ${j} isi semula?'))kp('resetJuri',{id:'${cur.id}',j:'${j}'})">↺</a>`:''}</span>`;}).join('');
+  const tol=cur?(k.tolak[cur.id]||{}):{};
+  const urut=susunUndian(rows);
+  return `${kunci?'<div class="lock">🔒 KEPUTUSAN TELAH DISAHKAN — DATA TIDAK BOLEH DIUBAH</div>':''}
+  <div class="neu card">
+   ${cur?`<div class="now"><div class="giliran neu-in">${esc(cur.undian)}</div><div>
+       <div class="muted" style="font-weight:800">GILIRAN SEMASA</div><div class="nama">${esc(cur.nama)}</div>
+       <div class="muted up" style="font-weight:700">${esc(cur.pasukan)}</div><div class="juristat">${juri}</div>${cur.jdq&&cur.jdq.length&&!cur.dq?`<div class="dqban" style="${cur.dqCukup?'':'background:var(--warn)'}">⛔ ${cur.jdq.length}/${nJ} JURI CADANG DISKUALIFIKASI${cur.dqCukup?' — CUKUP 2/3':' — BELUM CUKUP 2/3'}<div style="font-weight:600;font-size:13px;margin:4px 0 8px">${esc(cur.dqCadangan)}</div>
+     ${kunci?'':`<div class="row" style="gap:8px">${cur.dqCukup?`<button class="btn sm" style="background:#fff;color:var(--bad)" onclick="sahDQ('${cur.id}')">✔ SAHKAN DISKUALIFIKASI</button>`:''}<button class="btn sm" style="background:#fff;color:#333" onclick="tolakDQ('${cur.id}')">✖ TOLAK CADANGAN</button></div>`}</div>`:''}${catatanHTML(k,cur.id)}</div></div>`
+     :'<h2>Tiada giliran dipilih. Klik "PILIH" pada senarai di bawah atau butang MULA.</h2>'}
+   <div class="row" style="margin-top:16px">
+     <button class="btn" ${kunci?'disabled':''} onclick="gerak(-1)">◀ SEBELUM</button>
+     <button class="btn pri" ${kunci?'disabled':''} onclick="gerak(1)">${cur?'SETERUSNYA ▶':'MULA ▶'}</button>
+     ${cur?`<button class="btn bad" ${kunci?'disabled':''} onclick="if(confirm('Tandakan peserta semasa sebagai UNDUR DIRI (UD)?'))kp('ud',{id:'${cur.id}',ud:true})">UNDUR DIRI (UD)</button>${isPesaka(k)?`<button class="btn bad" ${kunci?'disabled':''} onclick="if(confirm('DISKUALIFIKASI peserta semasa?'))kp('ud',{id:'${cur.id}',ud:true,dq:true})">DISKUALIFIKASI</button>`:''}`:''}
+     <span class="grow"></span>
+     <label style="display:flex;gap:8px;align-items:center;margin:0;cursor:pointer"><input type="checkbox" ${k.paparMarkah?'checked':''} onchange="kp('papar',this.checked)" style="width:20px;height:20px"> PAPAR MARKAH KEPADA PENONTON</label>
+   </div>
+  </div>
+  ${cur?`<div class="row" style="align-items:stretch">
+   <div class="neu card grow" style="min-width:260px"><h3>⏱ PENGAMAT WAKTU (SASARAN ${mmss(k.masa.sasaran)})</h3>
+     <div class="stopwatch neu-in" id="sw">${mmss(SW.jalan?(SW.lalu+(Date.now()-SW.mula)/1000):SW.lalu)}</div>
+     <div class="row" style="margin-top:12px">
+       <button class="btn ok" ${kunci?'disabled':''} onclick="swMula()">MULA</button><button class="btn" ${kunci?'disabled':''} onclick="swHenti()">HENTI & SIMPAN</button><button class="btn sm" onclick="swReset()">RESET</button></div>
+     <div class="row" style="margin-top:12px"><label style="margin:0">ATAU TAIP (m:ss)</label>
+       <input data-keep="1" style="width:100px" ${kunci?'disabled':''} value="${cur.saat!=null?mmss(cur.saat):''}" onchange="kp('masa',{id:'${cur.id}',saat:bacaMasa(this.value)})"></div>
+     <p style="margin:10px 0 0">Masa direkod: <b>${mmss(cur.saat)}</b> • Penolakan masa: <b style="color:var(--bad)">${cur.tm}</b></p>
+   </div>
+   <div class="neu card grow" style="min-width:280px"><h3>PENOLAKAN MARKAH (KP/DJ)</h3>
+     ${senaraiTolak(k).map(p=>`<div class="cnt neu-in"><span style="font-size:13px;font-weight:700">${p.n} <span class="muted">(${p.v}${p.max?', mak '+p.max:''})</span></span>
+       <span class="row" style="gap:6px"><button class="btn sm" ${kunci?'disabled':''} onclick="ubahTolak('${cur.id}','${p.k}',-1)">−</button><span class="n">${tol[p.k]||0}</span><button class="btn sm" ${kunci?'disabled':''} onclick="ubahTolak('${cur.id}','${p.k}',1)">+</button></span></div>`).join('')}
+     <p style="margin:6px 0 0">Jumlah penolakan: <b style="color:var(--bad)">${cur.tolak}</b> (kesalahan ${cur.tk} + masa ${cur.tm})</p>
+   </div></div>`:''}
+  <div class="neu card" style="overflow-x:auto"><h3>SENARAI GILIRAN & MARKAH</h3>
+   <table><tr><th>UNDIAN</th><th>NAMA</th><th>PASUKAN</th>${thJ(nJ)}<th class="num">MASA</th><th class="num">TOLAK</th><th class="num">JUMLAH</th><th class="num">KED.</th><th></th></tr>
+   ${urut.map(r=>`<tr class="${r.id===k.semasa?'cur':''} ${r.ud?'ud':''}"><td class="num big">${esc(r.undian)}</td><td class="up"><b>${esc(r.nama)}</b></td><td class="up">${esc(r.pasukan)}</td>
+     ${tdJ(r)}<td class="num">${mmss(r.saat)}</td><td class="num">${r.tolak||''}</td>
+     <td class="num big">${r.ada?skor(r):'—'}</td><td class="num">${r.ud?'<span class="badge b-ud">'+(r.dq?'DQ':'UD')+'</span>':r.kedudukan?'<b>'+r.kedudukan+'</b>'+(r.seri?' <span class="badge b-gold">SERI</span>':''):''}</td>
+     <td>${kunci?'':r.ud?`<button class="btn sm" onclick="kp('ud',{id:'${r.id}',ud:false})">BATAL ${r.dq?'DQ':'UD'}</button>`:`<button class="btn sm" onclick="kp('semasa','${r.id}')">PILIH</button> <button class="btn sm" title="Ubah markah juri / masa" onclick="editMarkah('${r.id}',1)">✎</button>`}</td></tr>`).join('')}
+   </table>${!k.peserta.length?'<p class="muted">Tiada peserta. Pergi ke tab SENARAI UNDIAN.</p>':''}</div>`;
+}
+function gerak(d){
+  const s=susunUndian(ST.kat.peserta).filter(x=>!x.ud);if(!s.length)return toast('Tiada peserta',true);
+  let i=s.findIndex(x=>x.id===ST.kat.semasa);
+  i=i<0?0:i+d;if(i<0)i=0;if(i>=s.length)return toast('Ini giliran terakhir.',true);
+  swReset();kp('semasa',s[i].id);
+}
+function ubahTolak(id,kod,d){const t={...(ST.kat.tolak[id]||{})};t[kod]=Math.max(0,(t[kod]||0)+d);kp('tolak',{id,senarai:t});}
+function swTick(){const el=$('#sw');if(el)el.textContent=mmss(SW.lalu+(Date.now()-SW.mula)/1000);}
+function swMula(){if(SW.jalan)return;SW.mula=Date.now();SW.jalan=true;SW.h=setInterval(swTick,250);}
+function swHenti(){if(SW.jalan){SW.lalu+=(Date.now()-SW.mula)/1000;SW.jalan=false;clearInterval(SW.h);}
+  const saat=Math.round(SW.lalu);if(ST.kat&&ST.kat.semasa)kp('masa',{id:ST.kat.semasa,saat}).then(()=>toast('Masa disimpan: '+mmss(saat)));}
+function swReset(){SW.jalan=false;clearInterval(SW.h);SW.lalu=0;const el=$('#sw');if(el)el.textContent='0:00';}
+
+/* --- Tab Senarai Undian --- */
+let DRAF=null;
+function senaraiHTML(k){
+  const teks=DRAF!=null?DRAF:susunUndian(k.peserta).map(p=>[p.undian,p.nama,p.pasukan].join('\t')).join('\n');
+  return `<div class="neu card"><h3>SENARAI UNDIAN</h3>
+   ${k.sah?'<div class="lock">🔒 Telah disahkan</div>':`
+   <div class="drop" id="drop" onclick="$('#failcsv').click()">📄 <b>SERET & LEPAS FAIL CSV DI SINI</b> atau klik untuk pilih fail<br><span class="muted" style="font-size:13px">Lajur: UNDIAN, NAMA, PASUKAN (baris tajuk pilihan)</span></div>
+   <input type="file" id="failcsv" accept=".csv,.txt,text/csv" style="display:none" onchange="muatFail(this.files[0])">
+   <label>Atau taip / tampal (satu peserta satu baris: undian, nama, pasukan — dipisah koma atau Tab)</label>
+   <textarea id="txSenarai" data-keep="1" oninput="DRAF=this.value;pratonton()" placeholder="1, Ahmad Faiz, SMK Bukit Baru&#10;2, 'Abdul Rahman, SK Ayer Keroh">${esc(teks)}</textarea>
+   <div id="prev" style="margin-top:12px">${pratontonHTML(teks)}</div>
+   <div class="row" style="margin-top:12px"><button class="btn pri" onclick="simpanSenarai()">💾 SIMPAN SENARAI</button>
+   <button class="btn" onclick="DRAF=null;render()">BATAL</button></div>`}</div>`;
+}
+function pratontonHTML(t){
+  const l=keSenarai(parseCSV(t||''));
+  if(!l.length)return '<span class="muted">Tiada data.</span>';
+  return `<span class="muted">${l.length} peserta dikesan:</span><table><tr><th>UNDIAN</th><th>NAMA</th><th>PASUKAN</th></tr>${l.map(x=>`<tr><td class="num">${esc(x.undian)}</td><td class="up">${esc(x.nama)}</td><td class="up">${esc(x.pasukan)}</td></tr>`).join('')}</table>`;
+}
+function pratonton(){$('#prev').innerHTML=pratontonHTML($('#txSenarai').value);}
+async function muatFail(f){if(!f)return;const t=await bacaFail(f);const l=keSenarai(parseCSV(t));
+  DRAF=l.map(x=>[x.undian,x.nama,x.pasukan].join('\t')).join('\n');render();toast(l.length+' peserta dibaca dari fail');}
+function initDrop(){const d=$('#drop');if(!d)return;
+  ['dragenter','dragover'].forEach(e=>d.addEventListener(e,ev=>{ev.preventDefault();d.classList.add('over');}));
+  ['dragleave','drop'].forEach(e=>d.addEventListener(e,ev=>{ev.preventDefault();d.classList.remove('over');}));
+  d.addEventListener('drop',ev=>muatFail(ev.dataTransfer.files[0]));}
+async function simpanSenarai(){
+  const l=keSenarai(parseCSV($('#txSenarai').value));
+  const dup=l.map(x=>x.undian).filter((x,i,a)=>a.indexOf(x)!==i);
+  if(dup.length&&!confirm('Nombor undian berulang: '+[...new Set(dup)].join(', ')+'. Teruskan?'))return;
+  await kp('peserta',l);DRAF=null;TAB='live';render();toast('Senarai disimpan ('+l.length+' peserta)');
+}
+
+/* --- Tab Tetapan Masa --- */
+function masaHTML(k){
+  const M=k.masa;const dis=k.sah?'disabled':'';
+  return `<div class="neu card"><h3>TETAPAN KATEGORI & MASA</h3>
+   <div class="row"><div class="grow"><label>Nama paparan</label><input id="tNama" style="width:100%" ${dis} value="${esc(k.nama)}"></div>
+    <div><label>Acara</label><select id="tAcara" ${dis}>${(BORANG[k.jenis].acara||ACARA).map(a=>`<option ${a===k.acara?'selected':''}>${a}</option>`).join('')}</select></div>
+    <div><label>Tarikh</label><input id="tTarikh" type="date" ${dis} value="${esc(k.tarikh)}"></div>
+    ${bilJurus(k.jenis)?`<div class="grow"><label>Jurus yang dinilai</label><select id="tJurus" ${dis} style="width:100%">${jurusOpsyen(k.jenis,BORANG[k.jenis].sek[0].item.length)}</select></div>`:''}
+    <div><label>Bilangan juri</label><select id="tBil" ${dis}><option value="3" ${(k.bilJuri||3)==3?'selected':''}>3 JURI</option><option value="5" ${k.bilJuri==5?'selected':''}>5 JURI</option></select></div>
+    <div><label>Cara kira markah</label><select id="tKaedah" ${dis}><option value="jumlah" ${k.kaedah!=='purata'?'selected':''}>JUMLAH SEMUA JURI</option><option value="purata" ${k.kaedah==='purata'?'selected':''}>PURATA SEMUA JURI</option><option value="median" ${k.kaedah==='median'?'selected':''}>MEDIAN JURI</option></select></div></div>
+   <label style="display:flex;gap:8px;align-items:center;margin-top:12px;cursor:pointer"><input type="checkbox" id="tS10" ${dis} ${k.skala10?'checked':''} style="width:20px;height:20px"> PAPAR MARKAH SKALA 10 (cth 9.15)</label>
+   <label style="display:flex;gap:8px;align-items:center;margin-top:12px;cursor:pointer"><input type="checkbox" id="tHL" ${dis} ${k.buangHL?'checked':''} style="width:20px;height:20px"> 5 JURI: BUANG MARKAH TERTINGGI & TERENDAH (ambil 3 tengah)</label>
+   <div class="row" style="margin-top:14px">
+    <div><label>Masa persembahan (m:ss)</label><input id="tSas" style="width:120px" ${dis} value="${mmss(M.sasaran)}"></div>
+    <div><label>Toleransi (saat)</label><input id="tTol" type="number" style="width:120px" ${dis} value="${M.toleransi||0}"></div>
+    <label style="display:flex;gap:8px;align-items:center;margin:22px 0 0"><input id="tLebih" type="checkbox" ${dis} ${M.tolakLebih?'checked':''} style="width:20px;height:20px"> TOLAK JUGA JIKA LEBIH MASA</label></div>
+   <p class="muted" style="font-size:13px">Format KPM: lebih masa <b>tidak</b> ditolak. Kurang masa ditolak mengikut jadual di bawah (selepas toleransi).</p>
+   <h3 style="margin-top:14px">JADUAL PENOLAKAN MASA</h3>
+   <table id="tTier"><tr><th>KURANG DARI (saat)</th><th>HINGGA (saat)</th><th>TOLAK MARKAH</th><th></th></tr>
+   ${M.tier.map((t,i)=>`<tr><td><input type="number" ${dis} value="${t.dari}" style="width:100px"></td><td><input type="number" ${dis} value="${t.hingga}" style="width:100px"></td><td><input type="number" ${dis} value="${t.tolak}" style="width:100px"></td><td><button class="btn sm bad" ${dis} onclick="this.closest('tr').remove()">✕</button></td></tr>`).join('')}</table>
+   <div class="row" style="margin-top:12px"><button class="btn sm" ${dis} onclick="tambahTier()">+ TAMBAH BARIS</button><span class="grow"></span>
+   <button class="btn pri" ${dis} onclick="simpanTetapan()">💾 SIMPAN TETAPAN</button></div></div>`;
+}
+function tambahTier(){const tr=document.createElement('tr');tr.innerHTML='<td><input type="number" style="width:100px"></td><td><input type="number" style="width:100px"></td><td><input type="number" style="width:100px"></td><td><button class="btn sm bad" onclick="this.closest(\'tr\').remove()">✕</button></td>';$('#tTier').appendChild(tr);}
+async function simpanTetapan(){
+  const tier=[...document.querySelectorAll('#tTier tr')].slice(1).map(tr=>{const i=tr.querySelectorAll('input');return{dari:+i[0].value,hingga:+i[1].value||9999,tolak:+i[2].value};}).filter(t=>t.dari||t.tolak);
+  await kp('tetapan',{jurus:$('#tJurus')?+$('#tJurus').value:0,skala10:$('#tS10').checked,bilJuri:+$('#tBil').value,buangHL:$('#tHL').checked,kaedah:$('#tKaedah').value,nama:$('#tNama').value,acara:$('#tAcara').value,tarikh:$('#tTarikh').value,
+    masa:{sasaran:bacaMasa($('#tSas').value)||120,toleransi:+$('#tTol').value||0,tolakLebih:$('#tLebih').checked,tier}});
+  toast('Tetapan disimpan');
+}
+
+/* --- Tab Keputusan --- */
+function keputusanHTML(k,m){
+  const {rows,sah}=kira(k);
+  const belum=rows.filter(r=>!r.ud&&!r.lengkap);
+  const ud=rows.filter(r=>r.ud);
+  return `<div class="neu card" style="overflow-x:auto">
+   ${k.sah?`<div class="lock">🔒 DISAHKAN oleh ${esc(k.sah.oleh)} (KP) & ${esc(k.sah.dj)} (DJ) pada ${new Date(k.sah.masa).toLocaleString('ms-MY')}</div>`:''}
+   <div class="row"><h3 class="grow" style="margin:0">KEPUTUSAN (DISUSUN IKUT KEDUDUKAN)</h3>
+     <button class="btn gold" onclick="cetak()">🖨 CETAK</button>
+     ${k.sah?'':`<button class="btn ok" onclick="sahkan()">✔ SAHKAN KEPUTUSAN</button>`}</div>
+   ${belum.length?`<p style="color:var(--warn);font-weight:700">⚠ ${belum.length} peserta belum lengkap markah juri: ${belum.map(r=>esc(r.undian)).join(', ')}</p>`:''}
+   <table><tr><th class="num">KED.</th><th class="num">UNDIAN</th><th>NAMA</th><th>PASUKAN</th>${thJ(k.bilJuri||3)}<th class="num">${isPesaka(k)?'BHG. A':'WIRAGA/A'}</th><th></th><th class="num">MASA</th><th class="num">TOLAK</th><th class="num">JUMLAH</th></tr>
+   ${sah.map(r=>`<tr><td class="num big">${r.kedudukan}${r.seri?' <span class="badge b-gold">SERI*</span>':''}</td><td class="num">${esc(r.undian)}</td><td class="up"><b>${esc(r.nama)}</b></td><td class="up">${esc(r.pasukan)}</td>${tdJ(r)}<td class="num">${fx(r.wiraga)}</td><td><button class="btn sm" title="Cetak borang markah juri (untuk bantahan)" onclick="cetakBorang('${r.id}')">🖨 BORANG</button>${k.sah?'':` <button class="btn sm" title="Ubah markah juri / masa" onclick="editMarkah('${r.id}',1)">✎</button>`}</td><td class="num">${mmss(r.saat)}</td><td class="num">${r.tolak}</td><td class="num big">${skor(r)}${k.kaedah==='median'?`<div class="muted" style="font-size:11px;font-weight:600">MEDIAN ${fx(r.median)} · PURATA ${fx(r.purata)}</div>`:''}</td></tr>`).join('')}
+   ${ud.map(r=>`<tr class="ud"><td class="num"><span class="badge b-ud">${r.dq?'DQ':'UD'}</span></td><td class="num">${esc(r.undian)}</td><td class="up">${esc(r.nama)}</td><td class="up">${esc(r.pasukan)}</td><td colspan="${(k.bilJuri||3)+5}" class="muted">${r.dq?'DISKUALIFIKASI'+(r.dqSebab?' — '+esc(r.dqSebab):''):'UNDUR DIRI'}</td></tr>`).join('')}
+   </table>
+   <p class="muted" style="font-size:12px">Markah juri <s>bergaris</s> = dibuang (tertinggi/terendah). Butang 🖨 BORANG mencetak borang markah terperinci setiap juri untuk rujukan bantahan.</p>
+   ${rumusanHTML(k,rows)}
+   <p class="muted" style="font-size:12px">*SERI dileraikan ikut keutamaan: (1) markah Bahagian A tertinggi (Wiraga / Teknik), (2) masa paling hampir tepat, (3) tiada / kurang penolakan.</p></div>`;
+}
+/* Rumusan kesalahan setiap jurus (post mortem jurulatih) */
+function rumusanData(k,rows){
+  const B=BORANG[k.jenis];const it=B.sek.flatMap(s=>s.item).filter(x=>x.kira);if(!it.length)return null;
+  const nJ=k.bilJuri||3;
+  const L=susunUndian(rows).filter(r=>r.ada).map(r=>{const m=k.markah[r.id]||{};
+    const sel=it.map(x=>{const per=Array.from({length:nJ},(_,i)=>m[i+1]&&!m[i+1].dq?(m[i+1].v[x.k]||0):null);const jum=per.reduce((t,v)=>t+(v||0),0);return{per,jum};});
+    return{r,sel,jum:sel.reduce((t,c)=>t+c.jum,0)};});
+  return{it,L};
+}
+function rumusanHTML(k,rows){
+  const D=rumusanData(k,rows);if(!D||!D.L.length)return '';
+  const th=D.it.map(x=>`<th class="num" title="Gerakan ${x.dari}–${x.hingga}">J${x.k.slice(1)}</th>`).join('');
+  return `<div style="margin-top:18px;overflow-x:auto"><div class="row"><h3 class="grow" style="margin:0">📊 RUMUSAN KESALAHAN JURUS (POST MORTEM)</h3><button class="btn sm gold" onclick="cetakRumusan()">🖨 CETAK RUMUSAN</button></div>
+   <p class="muted" style="font-size:12px;margin:4px 0 8px">Nombor = jumlah kesalahan semua juri. Kecil di bawah = J1 / J2 / J3.</p>
+   <table style="font-size:12px"><tr><th>UNDIAN</th><th>NAMA</th>${th}<th class="num">JUMLAH</th></tr>
+   ${D.L.map(x=>`<tr class="${x.r.dq?'ud':''}"><td class="num">${esc(x.r.undian)}</td><td class="up" style="min-width:140px"><b>${esc(x.r.nama)}</b>${x.r.dq?' <span class="badge b-ud">DQ</span>':''}</td>
+     ${x.sel.map(c=>`<td class="num" style="${c.jum?'background:rgba(192,57,43,'+Math.min(.12+c.jum*.1,.55)+');color:var(--ink)':''}">${c.jum?'<b>'+c.jum+'</b><div style="font-size:9px">'+c.per.map(v=>v==null?'–':v).join(' / ')+'</div>':'<span class="muted">0</span>'}</td>`).join('')}
+     <td class="num big">${x.jum}</td></tr>`).join('')}</table></div>`;
+}
+function cetakRumusan(){
+  const k=ST.kat,m=ST.meta||{};const D=rumusanData(k,kira(k).rows);if(!D)return;const td='style="text-align:center"';
+  $('#cetak').innerHTML=`<h1>${esc(m.kejohanan||'PERTANDINGAN SILAT SENI')}</h1><h2>RUMUSAN KESALAHAN JURUS — ${esc(k.nama)} — ${esc(namaBorang(k.jenis))} — ${esc(k.acara)}</h2>
+   <table style="width:100%"><tr><th>UNDIAN</th><th>NAMA</th><th>PASUKAN</th>${D.it.map(x=>`<th>J${x.k.slice(1)}<br><small>${x.dari}–${x.hingga}</small></th>`).join('')}<th>JUMLAH</th></tr>
+   ${D.L.map(x=>`<tr><td ${td}>${esc(x.r.undian)}</td><td>${esc(x.r.nama)}${x.r.dq?' (DQ)':''}</td><td>${esc(x.r.pasukan)}</td>${x.sel.map(c=>`<td ${td}>${c.jum?'<b>'+c.jum+'</b><br><small>'+c.per.map(v=>v==null?'–':v).join(' / ')+'</small>':'0'}</td>`).join('')}<td ${td}><b>${x.jum}</b></td></tr>`).join('')}</table>
+   <p style="font-size:10px">NOMBOR = JUMLAH KESALAHAN SEMUA JURI; NOMBOR KECIL = JURI 1 / JURI 2 / JURI 3. DICETAK ${new Date().toLocaleString('ms-MY')}</p>`;
+  window.print();
+}
+function barisKeputusan(k){
+  const {sah,rows}=kira(k);
+  return sah.map(r=>({kedudukan:r.kedudukan,undian:r.undian,nama:r.nama,pasukan:r.pasukan,j:r.j,masa:mmss(r.saat),tolak:r.tolak,jumlah:r.jumlah,papar:r.papar==null?null:r.papar}))
+   .concat(rows.filter(r=>r.ud).map(r=>({kedudukan:r.dq?'DQ':'UD',undian:r.undian,nama:r.nama,pasukan:r.pasukan,j:[],masa:'',tolak:'',jumlah:''})));
+}
+async function sahkan(){
+  const k=ST.kat;const {rows}=kira(k);
+  if(rows.some(r=>!r.ud&&!r.lengkap))return toast('Masih ada peserta belum lengkap markah. Tandakan UD atau lengkapkan dahulu.',true);
+  modal(`<h2>SAHKAN KEPUTUSAN</h2><p style="color:var(--bad);font-weight:700">Selepas disahkan, markah TIDAK BOLEH diubah lagi.</p>
+   <label>Nama Ketua Pertandingan</label><input id="sKP" style="width:100%">
+   <label style="margin-top:10px">Nama Dewan Juri</label><input id="sDJ" style="width:100%">
+   <button class="btn ok" style="width:100%;margin-top:14px" onclick="sahkan2()">✔ SAHKAN SEKARANG</button>`);
+}
+async function sahkan2(){
+  const oleh=$('#sKP').value.trim(),dj=$('#sDJ').value.trim();if(!oleh||!dj)return toast('Isi kedua-dua nama.',true);
+  await kp('sah',{oleh,dj,keputusan:barisKeputusan(ST.kat)});tutupModal();toast('Keputusan DISAHKAN & dikunci.');
+}
+function cetak(){
+  const k=ST.kat,m=ST.meta||{};const L=k.sah&&k.keputusan?k.keputusan:barisKeputusan(k);const nJ=k.bilJuri||3;
+  $('#cetak').innerHTML=`<h1>${esc(m.kejohanan||'KEPUTUSAN PERTANDINGAN SENI SILAT')}</h1>
+   <h2>${esc(k.nama)} — ${esc(namaBorang(k.jenis))} — ACARA ${esc(k.acara)} ${k.tarikh?'— '+esc(k.tarikh):''}</h2>
+   ${k.sah?'':'<h2 style="color:#c00">DRAF — BELUM DISAHKAN</h2>'}
+   <table style="width:100%"><tr><th>KEDUDUKAN</th><th>UNDIAN</th><th>NAMA</th><th>PASUKAN</th>${Array.from({length:nJ},(_,i)=>'<th>JURI '+(i+1)+'</th>').join('')}<th>MASA</th><th>PENOLAKAN</th><th>JUMLAH</th></tr>
+   ${L.map(r=>`<tr><td style="text-align:center">${esc(r.kedudukan)}</td><td style="text-align:center">${esc(r.undian)}</td><td>${esc(r.nama)}</td><td>${esc(r.pasukan)}</td>${Array.from({length:nJ},(_,i)=>{const v=r.j?r.j[i]:r['j'+(i+1)];return '<td style="text-align:center">'+(r.kedudukan==='UD'?'':fx(v))+'</td>';}).join('')}<td style="text-align:center">${esc(r.masa)}</td><td style="text-align:center">${esc(r.tolak)}</td><td style="text-align:center"><b>${r.jumlah===''?esc(r.kedudukan):skor(r)}</b></td></tr>`).join('')}</table>
+   <div class="sign"><div>PENGESAHAN KETUA PERTANDINGAN<br><br><br>.................................................<br>${esc(k.sah?k.sah.oleh:'')}</div>
+   <div>PENGESAHAN DEWAN JURI<br><br><br>.................................................<br>${esc(k.sah?k.sah.dj:'')}</div></div>
+   ${k.sah?`<p style="font-size:10px">DISAHKAN SECARA DIGITAL PADA ${new Date(k.sah.masa).toLocaleString('ms-MY')}</p>`:''}`;
+  window.print();
+}
+
+/* ---------- JURI ---------- */
+let PIL={},PILKEY='',UBAH=false,CAT='',RAW={};
+function taipNilai(el,min,max){
+  const t=el.value.replace(/\D/g,'').slice(0,3);const k=el.dataset.k;RAW[k]=t;const n=+t;
+  if(t!==''&&n>=min&&n<=max)PIL[k]=n;else delete PIL[k];renderJuri();
+}
+function renderJuri(){
+  const ae=document.activeElement,fk=ae&&ae.classList&&ae.classList.contains('jin')?ae.dataset.k:null;
+  renderJuri0();
+  if(fk){const el=document.querySelector('.jin[data-k="'+fk+'"]');if(el){el.focus();const L=el.value.length;try{el.setSelectionRange(L,L);}catch(e){}}}
+}
+function renderJuri0(){
+  const k=ST.kat;const j=String(JURI_NO||'1');
+  const gelap=document.documentElement.dataset.theme==='dark';
+  const head=`<div class="jhead"><div class="jh"><div class="logo">J${esc(j)}</div><div class="ti"><b>JURI ${esc(j)}</b><i class="dot ${ONLINE?'on':''}" title="${ONLINE?'Dalam talian':'Luar talian'}"></i><span class="muted up">${k?esc(k.nama)+' • '+esc(k.acara):''}</span></div>
+    <button class="btn ib" title="Mod siang/malam" onclick="setTema('${gelap?'light':'dark'}');render()">${gelap?'☀':'☾'}</button><button class="btn ib" title="Log keluar" onclick="keluar()">⎋</button></div></div>`;
+  if(ST.meta&&ST.meta.rehat){$('#app').innerHTML=`<div class="wrap">${head}<div class="neu card wait"><h2>⏸ REHAT SEBENTAR</h2><p class="muted">${esc(ST.meta.rehatMsg||'Pertandingan akan disambung sebentar lagi.')}</p></div></div>`;return;}
+  if(!k||!k.semasa){$('#app').innerHTML=`<div class="wrap">${head}<div class="neu card wait"><h2>⏳ MENUNGGU GILIRAN</h2><p class="muted">Ketua Pertandingan akan memilih giliran.</p></div></div>`;return;}
+  const p=k.peserta.find(x=>x.id===k.semasa);if(!p)return;
+  const key=k.id+'|'+p.id;
+  const dah=k.markah[p.id]&&k.markah[p.id][j];
+  if(key!==PILKEY){PILKEY=key;UBAH=false;PIL=dah?{...dah.v}:{};CAT=dah?(dah.c||''):'';RAW={};}
+  if(!dah&&UBAH==='hantar')UBAH=false;
+  const B=BORANG[k.jenis];
+  const info=`<div class="neu jinfo"><div class="giliran neu-in">${esc(p.undian)}</div>
+    <div><div class="muted" style="font-weight:800;font-size:12px">GILIRAN / UNDIAN</div><div class="nama" style="font-size:21px">${esc(p.nama)}</div><div class="muted up">${esc(p.pasukan)}</div></div></div>`;
+  if(k.sah){$('#app').innerHTML=`<div class="wrap">${head}<div class="neu card wait"><h2>🔒 KEPUTUSAN TELAH DISAHKAN</h2></div></div>`;return;}
+  if(dah&&dah.dq){
+    $('#app').innerHTML=`<div class="wrap" style="max-width:720px">${head}${info}<div class="neu card wait"><h2 style="color:var(--bad)">⛔ DISKUALIFIKASI DIHANTAR</h2>
+      <p style="font-weight:800">${esc(dah.dq.sebab)}</p><p class="muted">Cadangan dihantar. DQ hanya sah jika 2/3 juri bersetuju dan disahkan oleh KP / DJ.</p>
+      <button class="btn" onclick="batalDQ()">BATAL DISKUALIFIKASI</button></div></div>`;return;
+  }
+  if(dah&&!UBAH){
+    const s=skorJuri(k.jenis,dah.v);
+    $('#app').innerHTML=`<div class="wrap" style="max-width:720px">${head}${info}<div class="neu card wait"><h2 style="color:var(--ok)">✓ MARKAH DIHANTAR</h2>
+      <div style="font-size:54px;font-weight:900">${fx(s.jum)}</div><p class="muted">Sila tunggu giliran seterusnya.</p>
+      <button class="btn" onclick="UBAH=true;renderJuri()">UBAH MARKAH</button></div></div>`;return;
+  }
+  const semua=B.sek.flatMap(sk=>sk.item);const siap=semua.filter(it=>it.kira||PIL[it.k]!=null).length;const lengkap=siap===semua.length;
+  const s=skorJuri(k.jenis,PIL);
+  $('#app').innerHTML=`<div class="wrap" style="max-width:720px">${head}${info}
+   ${B.sek.map(sk=>{const sSiap=sk.item.every(it=>it.kira||PIL[it.k]!=null);return `<div class="neu sek"><div class="row"><h2 class="grow up" style="margin:0"><span class="${sSiap?'jok':'jx'}">${sSiap?'✓':'✗'}</span> ${sk.k}. ${esc(sk.n)}</h2><span class="badge b-gold">${sSiap?fx(s.sek[sk.k]):'—'}</span></div>
+     ${sk.nota?`<div class="muted" style="font-size:12px;margin:6px 0 4px">${esc(sk.nota)}</div>`:''}
+     ${sk.item.map(it=>{const cur=PIL[it.k];const ada=cur!=null;
+       if(it.kira){const c=cur||0;const gh=it.grp&&(it.k==='j1'||sk.item[sk.item.indexOf(it)-1].grp!==it.grp)?`<div class="grp">${esc(it.grp)}</div>`:'';return gh+`<div class="kr"><div class="kn"><b>${esc(it.n)}</b><span class="muted">Gerakan ${it.dari}–${it.hingga} · ${it.mak}</span></div>
+         <button class="btn ib" ${c?'':'disabled'} onclick="ubahKira('${it.k}',-1,${it.mak})">−</button><span class="kc ${c?'jx':'muted'}">${c?'−'+c:'0'}</span>
+         <button class="btn kp1" onclick="ubahKira('${it.k}',1,${it.mak})">+1 SALAH</button></div>`;}
+       const masaInfo=(it.n==='Masa Persembahan')?`<div class="muted" style="font-size:12px;margin-top:4px">Kesesuaian tempo peragaan: kelam-kabut / terlalu perlahan / sesuai</div>`:'';
+       return `<div class="item ${ada?'':'belum'}"><div class="t"><span><span class="st ${ada?'jok':'jx'}">${ada?'✓':'✗'}</span>${esc(it.n)}</span><span class="row" style="gap:6px;flex-wrap:nowrap">${it.julat?`<span class="badge neu-in">MAK ${it.mak}</span><span class="badge neu-in">JULAT ${it.julat[0]}–${it.julat[1]}</span>`:it.mak?`<span class="badge neu-in">MAK ${it.mak}</span><span class="badge neu-in">M ${it.m}</span>`:'<span class="badge b-ud">PENOLAKAN</span>'}<span class="badge ${ada?'b-ok':'b-ud'}" style="font-size:14px">NILAI ${ada?fx(cur):'—'}</span></span></div>${masaInfo}${it.unsur?`<div class="muted" style="font-size:12px;margin-top:4px">Unsur: ${esc(it.unsur)}</div>`:''}
+       ${it.julat?`<input class="jin ${ada?'ok':RAW[it.k]&&RAW[it.k].length>=String(it.julat[1]).length?'bad':''}" data-k="${it.k}" type="text" inputmode="numeric" autocomplete="off" maxlength="3" placeholder="${it.julat[0]} – ${it.julat[1]}" value="${esc(RAW[it.k]!=null?RAW[it.k]:ada?cur:'')}" oninput="taipNilai(this,${it.julat[0]},${it.julat[1]})" onkeydown="if(event.key==='Enter')this.blur()">
+       <div class="jerr">${!ada&&RAW[it.k]&&RAW[it.k].length>=String(it.julat[1]).length?'Mesti nombor bulat '+it.julat[0]+' hingga '+it.julat[1]:''}</div>`
+       :`<div class="opts">${it.adj.map(a=>{const v=it.m+a;return `<button class="opt ${ada&&v===cur?'on':''} ${!ada&&a===0?'m':''}" onclick="PIL['${it.k}']=${v};renderJuri()">${a>0?'+'+fx(a):fx(a)}</button>`;}).join('')}</div>`}</div>`;}).join('')}</div>`;}).join('')}
+   ${B.jdq?`<button class="btn dqb" onclick="dqJuri()">⛔ DISKUALIFIKASI PESILAT</button>`:''}
+   <div class="neu sek"><h2 class="up" style="margin:0 0 8px">📝 Catatan <span class="muted" style="font-size:13px;font-weight:700">(tidak wajib)</span></h2>
+     <textarea id="jCat" maxlength="300" style="min-height:80px" placeholder="Catatan ringkas untuk rujukan KP / DJ..." oninput="CAT=this.value">${esc(CAT)}</textarea></div>
+   <div class="jfoot"><div class="grow"><span class="prog ${lengkap?'jok':'jx'}">${lengkap?'✓ LENGKAP':'✗ '+siap+' / '+semua.length+' ITEM'}</span><div style="font-size:26px;font-weight:900">${lengkap?fx(s.jum):'—'}</div></div>
+   <button class="btn ${lengkap?'ok':'pri'}" style="padding:15px 20px;font-size:15px" id="btnHantar" ${lengkap?'':'disabled'} onclick="hantar()">HANTAR MARKAH ✔</button></div></div>`;
+}
+function dqJuri(){
+  modal(`<h2 style="color:var(--bad)">⛔ DISKUALIFIKASI</h2><p class="muted" style="margin-top:0">Pilih sebab. Cadangan akan dihantar ke KP / DJ (perlu persetujuan 2/3 juri).</p>
+   ${SEBAB_DQ.map((x,i)=>`<label class="dqopt neu-in"><input type="radio" name="dqs" value="${esc(x)}" ${i?'':'checked'}> ${esc(x)}</label>`).join('')}
+   <textarea id="dqTx" maxlength="200" style="min-height:60px" placeholder="Keterangan tambahan (pilihan), cth: Jurus 5–7"></textarea>
+   <button class="btn" style="width:100%;margin-top:12px;background:var(--bad);color:#fff" onclick="hantarDQ()">SAHKAN DISKUALIFIKASI</button>`);
+}
+async function hantarDQ(){
+  const k=ST.kat;const r=document.querySelector('input[name=dqs]:checked');const tx=$('#dqTx').value.trim();
+  const sebab=r.value+(tx?' — '+tx:'');const v={};BORANG[k.jenis].sek.forEach(s=>s.item.forEach(it=>{if(PIL[it.k]!=null)v[it.k]=PIL[it.k];}));
+  try{await DB.set('pub/kat/'+k.id+'/markah/'+k.semasa+'/'+String(JURI_NO||'1'),{v,c:(CAT||'').trim(),dq:{sebab,t:Date.now()},t:Date.now()});tutupModal();toast('Diskualifikasi dihantar');}
+  catch(e){toast('Gagal: '+salahMsg(e),true);}
+}
+async function batalDQ(){
+  const k=ST.kat;try{await DB.remove('pub/kat/'+k.id+'/markah/'+k.semasa+'/'+String(JURI_NO||'1'));UBAH=true;}catch(e){toast('Gagal: '+salahMsg(e),true);}
+}
+async function hantar(){
+  const k=ST.kat;const B=BORANG[k.jenis];const v={};
+  let kurang=0;B.sek.forEach(s=>s.item.forEach(it=>{if(it.kira){v[it.k]=PIL[it.k]||0;return;}if(PIL[it.k]==null)kurang++;v[it.k]=PIL[it.k];}));
+  if(kurang)return toast('Masih ada '+kurang+' item belum dinilai (✗ merah).',true);
+  const b=$('#btnHantar');b.disabled=true;b.textContent='MENGHANTAR...';
+  try{await DB.set('pub/kat/'+k.id+'/markah/'+k.semasa+'/'+String(JURI_NO||'1'),{v,c:(CAT||'').trim(),t:Date.now()});
+    UBAH=false;renderJuri();toast('Markah dihantar');}
+  catch(e){toast('Gagal: '+salahMsg(e),true);b.disabled=false;b.textContent='CUBA LAGI';}
+}
+
+/* ---------- PENONTON ---------- */
+function renderPenonton(){
+  const k=ST.kat,m=ST.meta||{};
+  if(m.rehat){$('#app').innerHTML=`<div class="pen" style="justify-content:center;align-items:center;text-align:center"><div class="muted up" style="font-size:2vw;font-weight:800">${esc(m.kejohanan||'')}</div><div class="nm" style="font-size:8vw">⏸ REHAT SEBENTAR</div><div class="ps">${esc(m.rehatMsg||'Pertandingan akan disambung sebentar lagi')}</div></div>`;return;}
+  if(!k){$('#app').innerHTML=`<div class="pen"><div class="kat">${esc(m.kejohanan||'PERTANDINGAN SENI SILAT')}</div></div>`;return;}
+  const {rows,sah}=kira(k);const p=rows.find(r=>r.id===k.semasa);
+  $('#app').innerHTML=`<div class="pen">
+   <div class="row"><div class="grow"><div class="muted up" style="font-size:1.6vw;font-weight:800">${esc(m.kejohanan||'')}</div><div class="kat">${esc(k.nama)} • ${esc(k.acara)}</div></div><span class="noprint" style="opacity:.4">${temaBtn()}</span></div>
+   <div class="neu main">${p?`<div style="text-align:center"><div class="muted" style="font-size:1.6vw;font-weight:800">GILIRAN</div><div class="gil">${esc(p.undian)}</div></div>
+     <div><div class="nm">${esc(p.nama)}</div><div class="ps">${esc(p.pasukan)}</div>
+     ${k.paparMarkah&&p.lengkap?`<div class="skor">${skor(p)}</div>`:''}</div>`:`<div></div><div class="nm muted">SILA TUNGGU...</div>`}</div>
+   ${k.paparMarkah&&sah.length?`<div class="neu card"><table><tr><th>KED.</th><th>UNDIAN</th><th>NAMA</th><th>PASUKAN</th><th class="num">MARKAH</th></tr>
+     ${sah.slice(0,8).map(r=>`<tr><td class="num"><b>${r.kedudukan}</b></td><td class="num">${esc(r.undian)}</td><td class="up"><b>${esc(r.nama)}</b></td><td class="up">${esc(r.pasukan)}</td><td class="num"><b>${skor(r)}</b></td></tr>`).join('')}</table></div>`:''}
+  </div>`;
+}
+
+/* ---------- PIN / LOG MASUK (SATU PERANTI SATU SESI) ---------- */
+function renderLogin(){
+  const juri=VIEW==='juri';const pertama=!juri&&SEDIA===false;
+  const mod=(pertama?'baru':'pin')+(TENDANG?'t':'')+(SEDIA===null?'x':'');
+  if(LOGIN_UI===mod)return;LOGIN_UI=mod;
+  const tajuk=juri?'JURI '+esc(JURI_NO):'KETUA PERTANDINGAN / DEWAN JURI';
+  $('#app').innerHTML=`<div class="wrap" style="max-width:440px;padding-top:6vh">
+   <div class="neu card" style="text-align:center"><div class="logo" style="margin:0 auto 14px;width:64px;height:64px;font-size:22px">${juri?'J'+esc(JURI_NO):'KP'}</div>
+   <h1>${tajuk}</h1>
+   ${TENDANG?'<div class="notis">⚠ Sesi ditamatkan: peranti lain telah log masuk dengan PIN ini.</div>':''}
+   ${SEDIA===null?'<p class="muted">Menyambung...</p>':pertama?`<p class="muted">Kali pertama: cipta PIN untuk KP dan setiap juri.</p>
+     <label style="text-align:left">PIN KP / DJ (wajib)</label><input id="pKP" inputmode="numeric" style="width:100%;margin-bottom:10px">
+     ${[1,2,3,4,5].map(n=>`<label style="text-align:left">PIN Juri ${n}${n>3?' (jika 5 juri)':''}</label><input id="pJ${n}" inputmode="numeric" style="width:100%;margin-bottom:10px">`).join('')}
+     <button class="btn pri" style="width:100%" onclick="ciptaPin()">SIMPAN PIN & MASUK</button>`
+   :`<p class="muted">Masukkan PIN</p>
+     <input id="pin" type="password" inputmode="numeric" autocomplete="off" style="width:100%;font-size:28px;text-align:center;letter-spacing:10px" onkeydown="if(event.key==='Enter')masuk()">
+     <button class="btn pri" id="btnMasuk" style="width:100%;margin-top:14px" onclick="masuk()">MASUK</button>`}
+   <div class="row" style="margin-top:14px;justify-content:center">${netBadge()}${temaBtn()}</div></div></div>`;
+  const f=$('#pin')||$('#pKP');if(f)f.focus();
+}
+async function masukDgn(pin){
+  await DB.set('login/'+ROLE+'/'+UID,String(pin));   /* Firebase semak PIN */
+  await DB.set('sesi/'+ROLE,UID);                     /* peranti lama auto log keluar */
+}
+async function masuk(){
+  const v=$('#pin').value.trim();if(!v)return;const b=$('#btnMasuk');b.disabled=true;
+  try{await masukDgn(v);TENDANG=false;toast('Berjaya masuk');}catch(e){toast('PIN SALAH',true);b.disabled=false;$('#pin').value='';}
+}
+async function ciptaPin(){
+  const b={kp:$('#pKP').value.trim()};[1,2,3,4,5].forEach(n=>b['juri'+n]=$('#pJ'+n).value.trim());
+  if(!b.kp)return toast('PIN KP wajib diisi',true);
+  Object.keys(b).forEach(k=>{if(!b[k])delete b[k];});
+  try{await DB.set('rahsia',b);await DB.set('sedia',true);await masukDgn(b.kp);toast('PIN disimpan');}catch(e){toast('Gagal: '+salahMsg(e),true);}
+}
+async function tetapPin(){
+  let p={};try{p=await DB.get('rahsia')||{};}catch(e){return toast('Gagal: '+salahMsg(e),true);}
+  modal(`<h2>🔑 TETAPAN PIN</h2><p class="muted">Berikan PIN juri kepada setiap juri. Kosongkan = tidak berubah.</p>
+   <label>PIN KP / DJ</label><input id="pKP" value="${esc(p.kp||'')}" style="width:100%;margin-bottom:10px">
+   ${[1,2,3,4,5].map(n=>`<label>PIN Juri ${n}</label><input id="pJ${n}" value="${esc(p['juri'+n]||'')}" style="width:100%;margin-bottom:10px">`).join('')}
+   <button class="btn pri" style="width:100%" onclick="simpanPin()">SIMPAN</button>`);
+}
+async function simpanPin(){
+  const b={kp:$('#pKP').value.trim()};[1,2,3,4,5].forEach(n=>b['juri'+n]=$('#pJ'+n).value.trim());
+  Object.keys(b).forEach(k=>{if(!b[k])delete b[k];});
+  try{await DB.update('rahsia',b);if(b.kp)await DB.set('login/kp/'+UID,b.kp);tutupModal();toast('PIN dikemas kini');}catch(e){toast('Gagal: '+salahMsg(e),true);}
+}
+async function keluar(){try{await DB.remove('sesi/'+ROLE);}catch(e){}LOGGED=false;TENDANG=false;render();}
+const netBadge=()=>`<span class="net neu-in ${ONLINE?'on':''}" id="net"><i></i>${ONLINE?'DALAM TALIAN':'LUAR TALIAN'}</span>`;
+function renderSetup(){
+  $('#app').innerHTML=`<div class="wrap" style="max-width:640px;padding-top:6vh"><div class="neu card"><h1>⚙ TETAPAN BELUM LENGKAP</h1>
+   <p>Sila isi <b>FIREBASE_CONFIG</b> di bahagian atas fail <b>index.html</b>. Rujuk <b>PANDUAN.md</b> langkah 1–4.</p></div></div>`;
+}
+
+/* ---------- 5 JURI: lajur dinamik ---------- */
+const thJ=n=>Array.from({length:n},(_,i)=>`<th class="num">J${i+1}</th>`).join('');
+const tdJ=r=>r.j.map((x,i)=>`<td class="num">${r.jdq&&r.jdq.some(d=>d.j===i+1)?'<span class="jx" title="Diskualifikasi">⛔</span>':r.ud?'—':x==null?'<span class="jx" title="Belum hantar">✗</span>':r.buang&&r.buang.includes(i+1)?'<s class="jok" style="opacity:.55">✓ '+fx(x)+'</s>':'<span class="jok">✓ '+fx(x)+'</span>'}</td>`).join('');
+
+/* ---------- CETAK BORANG MARKAH JURI (BANTAHAN) ---------- */
+function cetakBorang(pid){
+  const k=ST.kat,m=ST.meta||{};const B=BORANG[k.jenis];const nJ=k.bilJuri||3;
+  const r=kira(k).rows.find(x=>x.id===pid);const mk=k.markah[pid]||{};
+  const J=Array.from({length:nJ},(_,i)=>i+1);
+  const nil=(j,it)=>mk[j]?(mk[j].v[it.k]!=null?mk[j].v[it.k]:it.m):null;
+  const td='style="text-align:center"';
+  let body='';
+  B.sek.forEach(sk=>{
+    body+=`<tr><th colspan="${3+nJ}" style="text-align:left">${sk.k}. ${esc(sk.n)}</th></tr>`;
+    sk.item.forEach(it=>{body+=`<tr><td>${esc(it.n)}</td><td ${td}>${it.mak||'-'}</td><td ${td}>${it.kira?'SALAH':it.julat?it.julat.join('–'):it.mak?it.m:'-'}</td>${J.map(j=>`<td ${td}>${fx(nil(j,it))}</td>`).join('')}</tr>`;});
+    body+=`<tr><td style="text-align:right"><b>JUMLAH ${sk.k}</b></td><td></td><td></td>${J.map(j=>`<td ${td}><b>${mk[j]?fx(skorJuri(k.jenis,mk[j].v).sek[sk.k]):'—'}</b></td>`).join('')}</tr>`;
+  });
+  body+=`<tr><th colspan="3" style="text-align:right">JUMLAH BESAR JURI</th>${J.map(j=>`<th ${td}>${fx(r.j[j-1])}${r.buang.includes(j)?' (DIBUANG)':''}${mk[j]&&mk[j].ed?'<br><small>(DIUBAH KP/DJ)</small>':''}</th>`).join('')}</tr>`;
+  body+=`<tr><td><b>CATATAN JURI</b></td><td></td><td></td>${J.map(j=>`<td style="font-size:10px">${mk[j]&&mk[j].c?esc(mk[j].c):''}</td>`).join('')}</tr>`;
+  const tol=k.tolak[pid]||{};
+  const tolRows=senaraiTolak(k).filter(p=>tol[p.k]).map(p=>{let v=tol[p.k]*p.v;if(p.max)v=Math.min(v,p.max);return `<tr><td>${esc(p.n)}</td><td ${td}>${tol[p.k]}</td><td ${td}>${v}</td></tr>`;}).join('');
+  $('#cetak').innerHTML=`<h1>${esc(m.kejohanan||'PERTANDINGAN SENI SILAT')}</h1>
+   <h2>BORANG PERINCIAN MARKAH JURI — ${esc(namaBorang(k.jenis))} — ACARA ${esc(k.acara)}</h2>
+   <table style="width:100%;margin-bottom:10px"><tr><th>KATEGORI</th><td>${esc(k.nama)}</td><th>UNDIAN</th><td>${esc(r.undian)}</td></tr>
+   <tr><th>NAMA</th><td>${esc(r.nama)}</td><th>PASUKAN</th><td>${esc(r.pasukan)}</td></tr></table>
+   <table style="width:100%"><tr><th>UNSUR</th><th>MAK</th><th>M</th>${J.map(j=>`<th>JURI ${j}</th>`).join('')}</tr>${body}</table>
+   <table style="width:60%;margin-top:10px"><tr><th>PENOLAKAN</th><th>BIL.</th><th>NILAI</th></tr>${tolRows}
+   <tr><td>MASA (${mmss(r.saat)} / SASARAN ${mmss(k.masa.sasaran)})</td><td ${td}>-</td><td ${td}>${r.tm}</td></tr>
+   <tr><th style="text-align:right" colspan="2">JUMLAH PENOLAKAN</th><th>${r.tolak}</th></tr></table>
+   <h2 style="text-align:left;margin-top:10px">MARKAH AKHIR (${k.kaedah==='purata'?'PURATA':k.kaedah==='median'?'MEDIAN (PURATA '+fx(r.purata)+')':'JUMLAH'}${r.buang.length?', BUANG TERTINGGI & TERENDAH':''}): ${skor(r)} ${r.kedudukan?'— KEDUDUKAN '+r.kedudukan:''}</h2>
+   <div class="sign"><div>PENGESAHAN KETUA PERTANDINGAN<br><br><br>.................................................<br>${esc(k.sah?k.sah.oleh:'')}</div>
+   <div>PENGESAHAN DEWAN JURI<br><br><br>.................................................<br>${esc(k.sah?k.sah.dj:'')}</div></div>
+   <p style="font-size:10px">DICETAK PADA ${new Date().toLocaleString('ms-MY')} ${k.sah?'• KEPUTUSAN DISAHKAN':'• DRAF'}</p>`;
+  window.print();
+}
+
+/* ======================= MULA ======================= */
+(async()=>{
+  if(!DB)return render();
+  try{UID=await DB.init();}catch(e){$('#app').innerHTML='<div class="wrap"><div class="neu card"><h2>Gagal sambung Firebase</h2><p>'+esc(salahMsg(e))+'</p><p class="muted">Pastikan Anonymous sign-in diaktifkan (PANDUAN langkah 3).</p></div></div>';return;}
+  DB.connected(ok=>{ONLINE=ok;const el=$('#net');if(el)el.outerHTML=netBadge();});
+  if(ROLE){
+    DB.on('sedia',v=>{SEDIA=!!v;if(!LOGGED)render();});
+    DB.on('sesi/'+ROLE,v=>{const dulu=LOGGED;LOGGED=(v===UID);if(dulu&&!LOGGED&&v)TENDANG=true;if(dulu!==LOGGED)render();});
+  }
+  pantau();render();
+  if(ROLE&&window.DEMO_PIN&&window.DEMO_PIN[ROLE])setTimeout(()=>{if(!LOGGED)masukDgn(window.DEMO_PIN[ROLE]).catch(()=>{});},300);
+})();
+
+</script>
+</body>
+</html>
