@@ -457,7 +457,7 @@ async function kp(op,p){
     case 'tolak':await DB.set(base+'/tolak/'+p.id,p.senarai);break;
     case 'papar':await DB.set(base+'/paparMarkah',!!p);break;
     case 'resetJuri':await DB.remove(base+'/markah/'+p.id+'/'+p.j);break;
-    case 'sah':await DB.update(base,{keputusan:p.keputusan,sah:{oleh:p.oleh,dj:p.dj,masa:Date.now()}});hantarSheet(k,p);break;
+    case 'sah':await DB.update(base,{keputusan:p.keputusan,sah:{oleh:p.oleh,dj:p.dj,masa:Date.now()}});hantarSheet(k,p);hantarKej(k,p);break;
   }}catch(e){toast('Gagal: '+salahMsg(e),true);throw e;}
 }
 async function setMeta(kunci,nilai){try{await DB.set('pub/meta/'+kunci,nilai);}catch(e){toast('Gagal: '+salahMsg(e),true);}}
@@ -699,6 +699,76 @@ const KOD_JENIS={'SENI TARI':'I','TARI':'I','SENI TEMPUR':'II','TEMPUR':'II','SI
 const kodJenis=t=>KOD_JENIS[String(t||'').toUpperCase().replace(/^KPM\s*|^PESAKA\s*/,'').replace(/^KATEGORI\s*/,'').trim()]||'';
 const CONTOH_PUKAL='KATEGORI,JENIS,ACARA,UNDIAN,NAMA,PASUKAN\nSENI TARI PUTERA,SENI TARI,LSM,1,Ahmad Faiz,SMK Bukit Baru\nSENI TARI PUTERA,SENI TARI,LSM,2,\'Abdul Rahman,SMK Ayer Keroh\nTUNGGAL DINI PUTRA,TUNGGAL,DINI PUTRA,1,Irfan Hakimi,Silat Lincah\nGANDA REMAJA PUTRI,GANDA,REMAJA PUTRI,1,Nur Aina & Siti Hajar,Seni Gayong';
 let PUKAL=null;
+
+/* ======================= SISTEM KEJOHANAN (Seni) ======================= */
+const KEJ_URL_ASAL="https://script.google.com/macros/s/AKfycbygqx3wrp8dXwFcDHVhzU2iGd-eOxACEzNH5lBuJyZTrdZOVVIB_cSgEx27c1YoQ0w/exec";
+let KEJSENI=null,kejSibuk=false;
+function kejCfg(){let c={};try{c=JSON.parse(store('kejCfg')||'{}')||{};}catch(e){}return{url:String(c.url||KEJ_URL_ASAL).trim(),pin:String(c.pin||'').trim()};}
+function kejSimpanCfg(){const u=($('#kjUrl')||{}).value,p=($('#kjPin')||{}).value;if(u===undefined)return true;
+  if(u.trim()&&!/^https:\/\/script\.google\.com\/.+\/exec$/.test(u.trim())&&!/^https?:\/\/localhost/.test(u.trim())){toast('URL mesti bermula https://script.google.com/ dan berakhir /exec',true);return false;}
+  store('kejCfg',JSON.stringify({url:u.trim()||KEJ_URL_ASAL,pin:(p||'').trim()}));return true;}
+async function kejApi(fn,args){
+  const c=kejCfg();const url=c.url+(c.url.includes('?')?'&':'?')+'api=gel&fn='+encodeURIComponent(fn)+'&args='+encodeURIComponent(JSON.stringify(args))+'&t='+Date.now();
+  let t;try{t=await (await fetch(url,{cache:'no-store',redirect:'follow'})).text();}catch(e){throw new Error('Tiada sambungan internet / URL tidak dapat dicapai.');}
+  let j=null;try{j=JSON.parse(t);}catch(e){}
+  const pel=m=>{const e=new Error(m);e.pelayan=true;return e;};
+  if(!j)throw pel(/accounts\.google|ServiceLogin|signin/i.test(t)?'Web App minta log masuk Google. Semak Deploy: Who has access = Anyone.':'Sistem Kejohanan belum dikemas kini. Tampal fail .gs terbaru & Deploy → New version.');
+  if(j.__ok)return j.data;
+  throw pel(j.__err||'Sistem Kejohanan belum dikemas kini. Tampal fail .gs terbaru & Deploy → New version.');
+}
+function kejTeka(t){t=String(t||'').toUpperCase();const ks=Object.keys(KOD_JENIS).filter(k=>k.length>2).sort((a,b)=>b.length-a.length);for(const k of ks)if(t.includes(k))return KOD_JENIS[k];return '';}
+function kejSeniUI(){const c=kejCfg();
+  modal(`<h2>🏟️ SISTEM KEJOHANAN</h2><p class="muted" style="margin-top:0;font-size:13px">Guna <b>PIN Ketua</b> yang sama seperti skrin Ketua Olahraga.</p>
+   <label>URL Web App Sistem Kejohanan</label><input id="kjUrl" style="width:100%" value="${esc(c.url)}">
+   <label>PIN Ketua</label><input id="kjPin" type="password" inputmode="numeric" style="width:100%" value="${esc(c.pin)}">
+   <div class="row" style="gap:8px;margin-top:10px"><button class="btn" onclick="kejUji()">🔌 UJI SAMBUNGAN</button><button class="btn gold" onclick="kejSenarai()">📥 SENARAI KATEGORI SENI</button></div>
+   <div id="kjList" style="margin-top:12px"></div>
+   ${kejGilir().length?`<p style="color:var(--bad);font-size:13px">⏳ ${kejGilir().length} keputusan menunggu dihantar (cuba semula setiap 30 saat).</p>`:''}`);
+  const d=$('#modal>div');if(d)d.style.width='min(860px,100%)';}
+async function kejUji(){if(!kejSimpanCfg())return;try{const d=await kejApi('api_gel_ping',[kejCfg().pin]);toast(d&&d.ok?'✓ '+d.msg:'✘ '+((d&&d.msg)||'PIN Ketua salah.'),!(d&&d.ok));}catch(e){toast('✘ '+e.message,true);}}
+async function kejSenarai(){
+  if(!kejSimpanCfg())return;const box=$('#kjList');box.innerHTML='<p class="muted">Memuatkan...</p>';
+  let d;try{d=await kejApi('api_gel_seniSenarai',[kejCfg().pin]);}catch(e){box.innerHTML='<p style="color:var(--bad)">✘ '+esc(e.message)+'</p>';return;}
+  if(!d||!d.ok){box.innerHTML='<p style="color:var(--bad)">✘ '+esc((d&&d.msg)||'Gagal')+'</p>';return;}
+  KEJSENI=d.kategori||[];if(d.kejohanan&&!(ST.meta||{}).kejohanan)setMeta('kejohanan',d.kejohanan);
+  if(!KEJSENI.length){box.innerHTML='<p class="muted">Tiada kategori Seni yang sudah diundi dalam Sistem Kejohanan. Jalankan Undi Semua di Pusat Kawalan dahulu.</p>';return;}
+  const ada={};(ST.meta.senarai||[]).forEach(x=>{if(x.kej)ada[x.kej]=1;});
+  const pil=Object.keys(BORANG).filter(j=>!BORANG[j].sembunyi);
+  box.innerHTML=`<table style="font-size:13px"><tr><th></th><th>KATEGORI</th><th class="num">PESERTA</th><th>BORANG</th><th></th></tr>
+   ${KEJSENI.map((x,i)=>{const t=kejTeka(x.kelas+' '+x.sub);return `<tr><td><input type="checkbox" id="kjC${i}" ${ada[x.katId]?'':'checked'}></td><td class="up"><b>${esc(x.acara)}</b><br><small>${esc(x.sub)}</small></td><td class="num">${x.peserta.length}</td>
+     <td><select id="kjJ${i}"><option value="">— pilih borang —</option>${pil.map(j=>`<option value="${j}" ${j===t?'selected':''}>${esc(namaBorang(j))}</option>`).join('')}</select></td>
+     <td>${ada[x.katId]?'<span class="badge b-wait">SUDAH ADA</span>':'<span class="badge b-ok">BARU</span>'}</td></tr>`;}).join('')}</table>
+   <button class="btn pri" style="width:100%;margin-top:10px" onclick="kejImport()">✔ CIPTA KATEGORI YANG DITANDA</button>`;
+}
+async function kejImport(){
+  if(!KEJSENI)return;let n=0;
+  for(let i=0;i<KEJSENI.length;i++){const c=$('#kjC'+i);if(!c||!c.checked)continue;const x=KEJSENI[i],j=$('#kjJ'+i).value;
+    if(!j){toast('Pilih BORANG untuk: '+x.sub,true);return;}}
+  for(let i=0;i<KEJSENI.length;i++){const c=$('#kjC'+i);if(!c||!c.checked)continue;const x=KEJSENI[i],j=$('#kjJ'+i).value,B=BORANG[j];
+    const acara=(B.acara||[]).find(a=>String(x.peringkat+' '+x.sub).toUpperCase().includes(String(a).toUpperCase()))||(B.acara||[''])[0];
+    const o={};x.peserta.forEach(p=>{o[uidBaru()]={undian:String(p.giliran),nama:(p.ahli&&p.ahli.length?p.ahli.join(' / '):p.pasukan),pasukan:p.pasukan,ud:false};});
+    try{const id=await ciptaKatData({nama:(x.acara+' • '+x.sub).toUpperCase(),jenis:jenisSebenar(j,acara),acara,sasaran:masaLalai(j,acara),kaedah:B.kaedah||'jumlah',bilJuri:3,skala10:B.format==='PESAKA'},false,o);
+      await DB.update('pub/kat/'+id,{kej:{katId:x.katId}});await DB.update('pub/meta/senarai/'+id,{kej:x.katId});n++;}
+    catch(e){toast('Gagal '+x.sub+': '+salahMsg(e),true);}}
+  tutupModal();toast(n+' kategori dicipta dari Sistem Kejohanan. Semak tetapan (masa/juri) setiap kategori.');
+}
+function kejGilir(){try{const g=JSON.parse(store('kejGilir')||'[]');return Array.isArray(g)?g:[];}catch(e){return[];}}
+function hantarKej(k,p){
+  if(!k||!k.kej||!k.kej.katId||!kejCfg().pin)return;
+  const data=(p.keputusan||[]).map(r=>{const num=typeof r.kedudukan==='number';return{giliran:+r.undian,pasukan:r.pasukan||'',markah:num?r.jumlah:'',tempat:num?r.kedudukan:'',status:num?'':String(r.kedudukan||'')};});
+  const g=kejGilir().filter(x=>x.katId!==k.kej.katId);g.push({katId:k.kej.katId,nama:k.nama,data});store('kejGilir',JSON.stringify(g));kejHantarGilir();
+}
+function hantarSemulaKej(){const k=ST.kat;if(!k||!k.sah)return;if(!kejCfg().pin){toast('Tetapkan PIN Ketua dahulu (🗂 DATA → Sistem Kejohanan).',true);return;}hantarKej(k,{keputusan:k.keputusan||barisKeputusan(k)});toast('Menghantar ke Sistem Kejohanan...');}
+async function kejHantarGilir(){
+  if(kejSibuk)return;const g=kejGilir(),c=kejCfg();if(!g.length||!c.pin)return;kejSibuk=true;const it=g[0];
+  const buang=()=>store('kejGilir',JSON.stringify(kejGilir().filter(x=>!(x.katId===it.katId&&JSON.stringify(x.data)===JSON.stringify(it.data)))));
+  try{const d=await kejApi('api_gel_seniSimpan',[c.pin,it.katId,JSON.stringify(it.data)]);buang();
+    if(d&&d.ok)toast('🏟️ Keputusan '+it.nama+' masuk ke Sistem Kejohanan');
+    else alert('⚠️ Keputusan '+it.nama+' TIDAK masuk ke Sistem Kejohanan:\n\n'+((d&&d.msg)||'Ralat')+'\n\nSila semak, atau masukkan markah di Pusat Kawalan.');}
+  catch(e){if(e.pelayan){buang();alert('⚠️ Keputusan '+it.nama+' TIDAK masuk ke Sistem Kejohanan:\n\n'+e.message);}else{kejSibuk=false;return;}}
+  kejSibuk=false;kejHantarGilir();
+}
+setInterval(kejHantarGilir,30000);window.addEventListener('online',kejHantarGilir);
 function urusData(){
   let auto=null;try{auto=JSON.parse(localStorage.getItem('salinanAuto')||'null');}catch(e){}
   modal(`<h2>🗂 URUS DATA</h2>
@@ -719,6 +789,9 @@ function urusData(){
      <button class="btn" onclick="$('#failSalin').click()">📂 PILIH FAIL SALINAN</button>
      <input type="file" id="failSalin" accept=".json" style="display:none" onchange="pulihSalinan(this.files[0])">
      ${auto?`<p style="font-size:13px;margin:10px 0 0">Salinan automatik peranti ini: <b>${new Date(auto.dicipta).toLocaleString('ms-MY')}</b> (${Object.keys(auto.pub.kat||{}).length} kategori) <button class="btn sm" onclick="pulihData(JSON.parse(localStorage.getItem('salinanAuto')))">PULIH</button></p>`:''}</div>
+   <div class="neu-in" style="padding:14px;margin-bottom:12px"><h3>🏟️ SISTEM KEJOHANAN (AUTOMATIK)</h3>
+     <p class="muted" style="font-size:13px;margin:0 0 8px">Ambil kategori Seni & giliran terus dari Sistem Pengurusan Kejohanan. Keputusan yang DISAHKAN dihantar automatik ke Sistem Kejohanan (kedudukan & pingat).</p>
+     <button class="btn gold" onclick="kejSeniUI()">🏟️ BUKA SAMBUNGAN KEJOHANAN</button></div>
    <div class="neu-in" style="padding:14px;margin-top:12px"><h3>4. GOOGLE SHEET</h3>
      ${SHEET_URL?`<p class="muted" style="font-size:13px;margin:0 0 8px">Setiap kategori yang DISAHKAN disalin automatik ke fail Google Sheet bernama <b>KEPUTUSAN · ${esc((ST.meta.kejohanan||'KEJOHANAN TANPA NAMA').toUpperCase())}</b> (folder Drive "KEPUTUSAN SILAT").</p>
        <div class="row" style="gap:8px"><button class="btn sm" onclick="ujiSheet()">🔌 UJI SAMBUNGAN</button>${ST.meta.sheetUrl?`<a class="btn sm ok" style="text-decoration:none" href="${esc(ST.meta.sheetUrl)}" target="_blank" rel="noopener">📊 BUKA ${esc(ST.meta.sheetFail||'GOOGLE SHEET')}</a>`:''}</div>`
@@ -913,7 +986,7 @@ function keputusanHTML(k,m){
   return `<div class="neu card" style="overflow-x:auto">
    ${k.sah?`<div class="lock">🔒 DISAHKAN oleh ${esc(k.sah.oleh)} (KP) & ${esc(k.sah.dj)} (DJ) pada ${new Date(k.sah.masa).toLocaleString('ms-MY')}</div>`:''}
    <div class="row"><h3 class="grow" style="margin:0">KEPUTUSAN (DISUSUN IKUT KEDUDUKAN)</h3>
-     <button class="btn gold" onclick="cetak()">🖨 CETAK</button>${k.sah&&SHEET_URL?`<button class="btn" onclick="hantarSemulaSheet()">📤 HANTAR KE GOOGLE SHEET</button>`:''}
+     <button class="btn gold" onclick="cetak()">🖨 CETAK</button>${k.sah&&SHEET_URL?`<button class="btn" onclick="hantarSemulaSheet()">📤 HANTAR KE GOOGLE SHEET</button>`:''}${k.sah&&k.kej?`<button class="btn" onclick="hantarSemulaKej()">🏟️ HANTAR KE SISTEM KEJOHANAN</button>`:''}
      ${k.sah?'':`<button class="btn ok" onclick="sahkan()">✔ SAHKAN KEPUTUSAN</button>`}</div>
    ${belum.length?`<p style="color:var(--warn);font-weight:700">⚠ ${belum.length} peserta belum lengkap markah juri: ${belum.map(r=>esc(r.undian)).join(', ')}</p>`:''}
    <table><tr><th class="num">KED.</th><th class="num">UNDIAN</th><th>NAMA</th><th>PASUKAN</th>${thJ(k.bilJuri||3)}<th class="num">${isPesaka(k)?'BHG. A':'WIRAGA/A'}</th><th></th><th class="num">MASA</th><th class="num">TOLAK</th><th class="num">JUMLAH</th></tr>
